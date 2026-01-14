@@ -1,0 +1,51 @@
+---
+import { sayHello } from "@repo/common/utils";
+import { Button } from "@repo/ui/button";
+---
+
+<html lang="en">
+	<head>
+		<meta charset="utf-8" />
+		<link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+		<meta name="viewport" content="width=device-width" />
+		<meta name="generator" content={Astro.generator} />
+		<title>Monorepo Web</title>
+	</head>
+	<body>
+		<h1>{sayHello("Astro")}</h1>
+        <p>This is the web application.</p>
+        <div style="padding: 20px;">
+            <Button client:visible onClick={() => alert('Clicked!')}>
+                Click me (React shared component)
+            </Button>
+        </div>
+        {!import.meta.env.PROD && (
+            <script is:inline>
+                (async () => {
+                    const checkUptime = async () => {
+                        try {
+                            const res = await fetch('/__dev/uptime');
+                            if (!res.ok) return null;
+                            const data = await res.json();
+                            return data.startTime;
+                        } catch (e) {
+                            return null;
+                        }
+                    };
+
+                    let lastStartTime = await checkUptime();
+
+                    setInterval(async () => {
+                        const currentStartTime = await checkUptime();
+                        if (currentStartTime && lastStartTime && currentStartTime !== lastStartTime) {
+                            console.log('Server restarted, reloading...');
+                            window.location.reload();
+                        } else if (currentStartTime) {
+                            lastStartTime = currentStartTime;
+                        }
+                    }, 1000);
+                })();
+            </script>
+        )}
+	</body>
+</html>

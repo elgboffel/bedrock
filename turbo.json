@@ -8,12 +8,20 @@
     "lint": {
       "dependsOn": ["^lint"]
     },
+    "typecheck": {
+      "dependsOn": ["^typecheck"]
+    },
     "dev": {
       "cache": false,
       "persistent": true
     },
+    "start": {
+      "dependsOn": ["^build"],
+      "cache": false,
+      "persistent": true
+    },
     "check": {
-        "dependsOn": ["^check"]
+      "dependsOn": ["^check"]
     }
   }
 }

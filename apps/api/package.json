@@ -3,20 +3,22 @@
   "version": "0.0.0",
   "private": true,
   "scripts": {
-    "dev": "tsx watch src/index.ts",
-    "build": "tsc",
-    "start": "node dist/index.js",
+    "dev": "tsup --watch --onSuccess 'node dist/index.mjs'",
+    "build": "tsup",
+    "start": "node dist/index.mjs",
     "lint": "biome lint .",
+    "typecheck": "tsc --noEmit",
     "format": "biome format ."
   },
   "dependencies": {
-    "fastify": "^5.0.0",
-    "@repo/common": "workspace:*"
+    "@repo/common": "workspace:*",
+    "fastify": "^5.0.0"
   },
   "devDependencies": {
-    "tsx": "^4.7.0",
-    "typescript": "^5.9.3",
+    "@biomejs/biome": "^2.3.11",
+    "@repo/typescript-config": "workspace:*",
     "@types/node": "^20.0.0",
-    "@biomejs/biome": "^2.3.11"
+    "tsup": "^8.5.1",
+    "typescript": "^5.9.3"
   }
 }

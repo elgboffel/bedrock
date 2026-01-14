@@ -1,0 +1,11 @@
+{
+  "versionGroups": [
+    {
+      "label": "Internal packages should use workspace protocol",
+      "packages": ["**"],
+      "dependencies": ["@repo/**"],
+      "dependencyTypes": ["dev", "prod"],
+      "pinVersion": "workspace:*"
+    }
+  ]
+}

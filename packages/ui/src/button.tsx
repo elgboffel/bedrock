@@ -1,4 +1,4 @@
-import * as React from "react";
+import type * as React from "react";
 
 export interface ButtonProps {
   children: React.ReactNode;
@@ -8,6 +8,7 @@ export interface ButtonProps {
 export const Button = ({ children, onClick }: ButtonProps) => {
   return (
     <button
+      type="button"
       onClick={onClick}
       style={{
         padding: "10px 20px",

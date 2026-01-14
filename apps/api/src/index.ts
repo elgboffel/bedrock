@@ -5,7 +5,7 @@ const fastify = Fastify({
   logger: true,
 });
 
-fastify.get("/", async (request, reply) => {
+fastify.get("/", async (_request, _reply) => {
   return { hello: "world 2", common: sayHello("API"), constant: COMMON_CONSTANT };
 });
 
