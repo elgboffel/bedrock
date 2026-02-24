@@ -8,8 +8,32 @@ import Fastify from "fastify";
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 async function start() {
-  const fastify = Fastify({ logger: true });
   const isProduction = process.env.NODE_ENV === "production";
+  const fastify = Fastify({
+    logger: {
+      level: isProduction ? "info" : "debug",
+      serializers: {
+        req(req) {
+          return {
+            method: req.method,
+            url: req.url,
+            hostname: req.hostname,
+            remoteAddress: req.ip,
+            remotePort: req.socket.remotePort,
+          };
+        },
+      },
+      ...(!isProduction && {
+        transport: {
+          target: "pino-pretty",
+          options: {
+            translateTime: "HH:MM:ss Z",
+            ignore: "pid,hostname",
+          },
+        },
+      }),
+    },
+  });
 
   // Core Fastify routes (API proxied or handled here if needed)
   fastify.get("/health", async () => ({
@@ -68,6 +92,15 @@ async function start() {
     console.log(`Fastify server running on ${address}`);
     if (!isProduction)
       console.log("Proxying to Astro at http://localhost:4321");
+
+    const listeners = ["SIGINT", "SIGTERM", "SIGHUP"];
+    for (const signal of listeners) {
+      process.on(signal, async () => {
+        fastify.log.info(`[${signal}] received, shutting down cleanly...`);
+        await fastify.close();
+        process.exit(0);
+      });
+    }
   } catch (err) {
     fastify.log.error(err);
     process.exit(1);

@@ -4,10 +4,10 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "dev": "tsup --watch --onSuccess 'node dist/server-runner/index.js'",
-    "build": "astro build && tsup",
-    "start": "node dist/server-runner/index.js",
-    "preview": "node dist/server-runner/index.js",
+    "dev": "concurrently \"tsdown --watch\" \"nodemon dist/server-runner/index.mjs\"",
+    "build": "astro build && tsdown",
+    "start": "node dist/server-runner/index.mjs",
+    "preview": "node dist/server-runner/index.mjs",
     "lint": "biome lint .",
     "typecheck": "astro check && tsc --noEmit",
     "format": "biome format ."
@@ -30,7 +30,7 @@
     "@biomejs/biome": "^2.3.11",
     "@types/react": "^19.0.0",
     "@types/react-dom": "^19.0.0",
-    "tsup": "^8.5.1",
+    "tsdown": "^0.20.3",
     "typescript": "^5.9.3"
   }
 }
