@@ -1,6 +1,7 @@
 {
   "name": "@repo/ui",
   "version": "0.0.0",
+  "private": true,
   "exports": {
     "./*": "./src/*.tsx"
   },
@@ -13,8 +14,6 @@
     "@types/react": "^19.0.0",
     "@types/react-dom": "^19.0.0",
     "react": "^19.0.0",
-    "typescript": "^5.9.3",
-    "@biomejs/biome": "^2.3.11",
     "@repo/typescript-config": "workspace:*"
   },
   "peerDependencies": {

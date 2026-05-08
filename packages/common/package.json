@@ -1,6 +1,7 @@
 {
   "name": "@repo/common",
   "version": "0.0.0",
+  "private": true,
   "exports": {
     "./*": "./src/*.ts"
   },
@@ -10,8 +11,6 @@
     "format": "biome format ."
   },
   "devDependencies": {
-    "typescript": "^5.9.3",
-    "@biomejs/biome": "^2.3.11",
     "@repo/typescript-config": "workspace:*"
   }
 }
