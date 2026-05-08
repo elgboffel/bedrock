@@ -9,5 +9,16 @@ export default defineConfig({
   adapter: node({
     mode: 'middleware'
   }),
-  integrations: [react()]
+  integrations: [react()],
+  vite: {
+    server: {
+      proxy: {
+        '/api': {
+          target: 'http://localhost:3001',
+          rewrite: (path) => path.replace(/^\/api/, ''),
+        },
+
+      },
+    },
+  },
 });

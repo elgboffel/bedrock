@@ -41,28 +41,27 @@ async function start() {
     mode: isProduction ? "prod" : "dev",
   }));
 
-  // Dev-only: Uptime endpoint for client-side reload
-  if (!isProduction) {
-    const startTime = Date.now();
-    fastify.get("/__dev/uptime", async () => ({
-      startTime,
-    }));
-  }
+  // Proxy /api/* to the API server on port 3001
+  await fastify.register(async (scope) => {
+    await scope.register(fastifyProxy, {
+      upstream: "http://localhost:3001",
+      prefix: "/api",
+      rewritePrefix: "/",
+      http2: false,
+    });
+  });
 
   if (isProduction) {
     // Production: Use Astro Middleware
     await fastify.register(fastifyExpress);
-    // Adjusted path: generated relative to dist/server-runner/server.js -> ../server/entry.mjs
-    // Actually, Tsup outputs to dist/server-runner. Astro outputs to dist/server.
-    // So relative from dist/server-runner/index.js to dist/server/entry.mjs is ../server/entry.mjs
-    // BUT we are writing source code here.
-    // When built, it runs from dist/server-runner/index.js.
-    const { handler } = await import("../../dist/server/entry.mjs");
+    // Resolve at runtime relative to dist/server-runner/ -> dist/server/entry.mjs
+    const astroEntryPath = path.join(__dirname, "../server/entry.mjs");
+    const { handler } = await import(/* @vite-ignore */ astroEntryPath);
     await fastify.use(handler);
 
     // Serve static assets
     await fastify.register(fastifyStatic, {
-      root: path.join(__dirname, "../../dist", "client"),
+      root: path.join(__dirname, "../client"),
     });
   } else {
     // Development: Proxy to Astro Dev Server (HMR support)

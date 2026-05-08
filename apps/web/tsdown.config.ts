@@ -11,5 +11,9 @@ export default defineConfig((options: InlineConfig): UserConfig => {
     sourcemap: true,
     outDir: "dist/server-runner",
     target: "node18",
+    // Keep node_modules as external — they're available at runtime.
+    // Without this, fastify, pino, and the entire Astro SSR output
+    // get bundled in, inflating the output from ~2 kB to ~2 MB.
+    external: [/node_modules/],
   };
 });

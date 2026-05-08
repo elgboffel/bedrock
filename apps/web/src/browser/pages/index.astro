@@ -1,6 +1,7 @@
 ---
 import { sayHello } from "@repo/common/utils";
 import { Button } from "@repo/ui/button";
+import { ApiCheck } from "../components/ApiCheck";
 ---
 
 <html lang="en">
@@ -19,33 +20,9 @@ import { Button } from "@repo/ui/button";
                 Click me (React shared component)
             </Button>
         </div>
-        {!import.meta.env.PROD && (
-            <script is:inline>
-                (async () => {
-                    const checkUptime = async () => {
-                        try {
-                            const res = await fetch('/__dev/uptime');
-                            if (!res.ok) return null;
-                            const data = await res.json();
-                            return data.startTime;
-                        } catch (e) {
-                            return null;
-                        }
-                    };
+        <div style="padding: 20px;">
+            <ApiCheck client:visible />
+        </div>
 
-                    let lastStartTime = await checkUptime();
-
-                    setInterval(async () => {
-                        const currentStartTime = await checkUptime();
-                        if (currentStartTime && lastStartTime && currentStartTime !== lastStartTime) {
-                            console.log('Server restarted, reloading...');
-                            window.location.reload();
-                        } else if (currentStartTime) {
-                            lastStartTime = currentStartTime;
-                        }
-                    }, 1000);
-                })();
-            </script>
-        )}
 	</body>
 </html>
