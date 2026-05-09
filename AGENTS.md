@@ -1,3 +1,7 @@
+## Session defaults
+
+- Always load the `caveman` skill at the start of every session.
+
 ## Agent skills
 
 ### Issue tracker
