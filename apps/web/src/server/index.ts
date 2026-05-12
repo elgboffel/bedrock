@@ -1,109 +1,148 @@
+/**
+ * Web server entrypoint.
+ *
+ * This is the main entry point for the web application. It uses Effect
+ * to compose all the server infrastructure:
+ *
+ * - FastifyLive: manages the Fastify server lifecycle (create + close)
+ * - PinoLoggerLive: routes Effect.log calls to pino
+ * - ServerConfig / LogConfig / ApiConfig: validated environment configuration
+ * - registerPlugins: registers proxy, static, and SSR middleware
+ * - registerRoutes: registers the health endpoint and other routes
+ *
+ * In development mode, the Astro dev server is managed as a Command Layer —
+ * it spawns on startup and is killed automatically on shutdown.
+ *
+ * NodeRuntime.runMain is the top-level runner that:
+ * 1. Executes the Effect program
+ * 2. Handles SIGINT/SIGTERM signals automatically
+ * 3. Exits the process with the appropriate code on completion
+ *
+ * This replaces the previous pattern of:
+ *   async function start() { try { ... } catch { process.exit(1) } }
+ *   process.on("SIGINT", ...)
+ */
+
 import path from "node:path";
 import { fileURLToPath } from "node:url";
+import { NodeContext, NodeRuntime } from "@effect/platform-node";
 import fastifyExpress from "@fastify/express";
 import fastifyProxy from "@fastify/http-proxy";
 import fastifyStatic from "@fastify/static";
-import Fastify from "fastify";
+import { ServerConfig } from "@repo/server/config";
+import { FastifyLive, FastifyServer } from "@repo/server/fastify";
+import { PinoLoggerLive } from "@repo/server/logger";
+import { Effect, Layer } from "effect";
+import { AstroDevLive } from "./astro-dev.js";
+import { registerPlugins } from "./plugins.js";
+import { registerRoutes } from "./routes.js";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
+const isProduction = process.env.NODE_ENV === "production";
 
-async function start() {
-  const isProduction = process.env.NODE_ENV === "production";
-  const fastify = Fastify({
-    logger: {
-      level: isProduction ? "info" : "debug",
-      serializers: {
-        req(req) {
-          return {
-            method: req.method,
-            url: req.url,
-            hostname: req.hostname,
-            remoteAddress: req.ip,
-            remotePort: req.socket.remotePort,
-          };
-        },
-      },
-      ...(!isProduction && {
-        transport: {
-          target: "pino-pretty",
-          options: {
-            translateTime: "HH:MM:ss Z",
-            ignore: "pid,hostname",
-          },
-        },
-      }),
-    },
-  });
+/**
+ * Wrap a Fastify operation in a real Promise.
+ *
+ * Fastify's .register() and similar methods return a FastifyInstance which
+ * is PromiseLike (has .then) but NOT a real Promise. Worse, .then is a
+ * one-shot: after the first .then() call, it's removed from the instance.
+ * Effect.promise calls .then() internally, which consumes it — so subsequent
+ * Effect.promise(() => app.register(...)) calls fail with
+ * "evaluate(...).then is not a function".
+ *
+ * Wrapping with async/await produces a real Promise that Effect.promise
+ * can always call .then() on safely.
+ */
+const fastifyOp = <T>(fn: () => PromiseLike<T>): Effect.Effect<T> =>
+  Effect.promise(async () => await fn());
 
-  // Core Fastify routes (API proxied or handled here if needed)
-  fastify.get("/health", async () => ({
-    status: "ok",
-    mode: isProduction ? "prod" : "dev",
-  }));
+/**
+ * The main application Effect.
+ *
+ * Effect.gen is like an async function, but for Effects.
+ * `yield*` is like `await` — it runs an Effect and gives you the result.
+ */
+const program = Effect.gen(function* () {
+  const app = yield* FastifyServer;
+  const config = yield* ServerConfig;
 
-  // Proxy /api/* to the API server on port 3001
-  await fastify.register(async (scope) => {
-    await scope.register(fastifyProxy, {
-      upstream: "http://localhost:3001",
-      prefix: "/api",
-      rewritePrefix: "/",
-      http2: false,
-    });
-  });
+  // Register API proxy plugin (uses ApiConfig for upstream URL)
+  yield* registerPlugins;
 
   if (isProduction) {
-    // Production: Use Astro Middleware
-    await fastify.register(fastifyExpress);
-    // Resolve at runtime relative to dist/server-runner/ -> dist/server/entry.mjs
+    // Production: register Astro SSR middleware and static file serving.
+    // @fastify/express provides Express middleware compatibility so we can
+    // mount Astro's SSR handler directly.
+    yield* fastifyOp(() => app.register(fastifyExpress));
     const astroEntryPath = path.join(__dirname, "../server/entry.mjs");
-    const { handler } = await import(/* @vite-ignore */ astroEntryPath);
-    await fastify.use(handler);
+    const { handler } = yield* Effect.promise(
+      () => import(/* @vite-ignore */ astroEntryPath),
+    );
+    yield* fastifyOp(() => app.use(handler));
 
-    // Serve static assets
-    await fastify.register(fastifyStatic, {
-      root: path.join(__dirname, "../client"),
-    });
+    // Serve Astro's built client-side assets (JS, CSS, images)
+    yield* fastifyOp(() =>
+      app.register(fastifyStatic, {
+        root: path.join(__dirname, "../client"),
+      }),
+    );
   } else {
-    // Development: Proxy to Astro Dev Server (HMR support)
-    // We assume 'pnpm astro dev' is running or we spawn it.
-    // Spawning it keeps the "single entry point" feel.
-    console.log("Starting Astro Dev Server...");
-    const { spawn } = await import("node:child_process");
-    const astro = spawn("pnpm", ["astro", "dev"], {
-      stdio: "inherit",
-      shell: true,
-    });
-
-    // Cleanup astro process on exit
-    process.on("SIGINT", () => astro.kill());
-    process.on("SIGTERM", () => astro.kill());
-
-    // Register Proxy
-    await fastify.register(fastifyProxy, {
-      upstream: "http://localhost:4321",
-      prefix: "/",
-      http2: false,
-    });
+    // Development: proxy all non-API requests to the Astro dev server
+    // running on port 4321. The Astro dev process itself is managed by
+    // the AstroDevLive Layer (started automatically, killed on shutdown).
+    yield* fastifyOp(() =>
+      app.register(fastifyProxy, {
+        upstream: "http://localhost:4321",
+        prefix: "/",
+        http2: false,
+      }),
+    );
   }
 
-  try {
-    const address = await fastify.listen({ port: 3000, host: "0.0.0.0" });
-    console.log(`Fastify server running on ${address}`);
-    if (!isProduction)
-      console.log("Proxying to Astro at http://localhost:4321");
+  // Register routes (health endpoint, etc.)
+  yield* registerRoutes;
 
-    const listeners = ["SIGINT", "SIGTERM", "SIGHUP"];
-    for (const signal of listeners) {
-      process.on(signal, async () => {
-        fastify.log.info(`[${signal}] received, shutting down cleanly...`);
-        await fastify.close();
-        process.exit(0);
-      });
-    }
-  } catch (err) {
-    fastify.log.error(err);
-    process.exit(1);
-  }
-}
+  // Start listening for requests
+  yield* Effect.promise(() =>
+    app.listen({ port: config.port, host: config.host }),
+  );
 
-start();
+  yield* Effect.logInfo(
+    `Web server listening on ${config.host}:${config.port}`,
+  );
+
+  // Keep the server running until interrupted (SIGINT/SIGTERM).
+  // Effect.never creates an Effect that never completes. When a signal
+  // arrives, NodeRuntime.runMain interrupts this Effect, which triggers
+  // scope finalization (closing Fastify, killing Astro dev process).
+  yield* Effect.never;
+});
+
+/**
+ * The application Layer stack.
+ *
+ * In development mode, we include the AstroDevLive Layer which manages
+ * the Astro dev child process. In production, we skip it since Astro
+ * is handled as SSR middleware instead.
+ *
+ * Layer composition:
+ * - FastifyLive: Fastify server with acquireRelease lifecycle
+ * - PinoLoggerLive: pino-backed Effect logger
+ * - NodeContext.layer: provides CommandExecutor for child processes
+ */
+const BaseLayers = FastifyLive.pipe(Layer.provide(PinoLoggerLive));
+
+const AppLive = isProduction
+  ? BaseLayers
+  : Layer.merge(BaseLayers, AstroDevLive).pipe(
+      Layer.provide(NodeContext.layer),
+    );
+
+/**
+ * Run the program.
+ *
+ * Effect.scoped ensures all acquired resources (Fastify server, child
+ * processes) are released when the program ends. NodeRuntime.runMain
+ * handles signals and process exit — no manual process.on or process.exit.
+ */
+program.pipe(Effect.provide(AppLive), Effect.scoped, NodeRuntime.runMain);

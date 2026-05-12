@@ -11,9 +11,12 @@ export default defineConfig((options: InlineConfig): UserConfig => {
     sourcemap: true,
     outDir: "dist/server-runner",
     target: "node18",
-    // Keep node_modules as external — they're available at runtime.
-    // Without this, fastify, pino, and the entire Astro SSR output
-    // get bundled in, inflating the output from ~2 kB to ~2 MB.
-    external: [/node_modules/],
+    // Workspace packages (@repo/*) export raw .ts source files, so they
+    // must be bundled inline — Node can't run .ts imports at runtime.
+    // noExternal overrides tsdown's auto-external behavior for deps
+    // listed in package.json. Their transitive deps (pino, etc.) get
+    // bundled too — this is intentional and expected.
+    noExternal: [/^@repo\//],
+    inlineOnly: false,
   };
 });
