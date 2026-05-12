@@ -4,7 +4,7 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "dev": "concurrently \"tsdown --watch\" \"nodemon dist/index.mjs\"",
+    "dev": "SERVER_PORT=3001 concurrently \"tsdown --watch\" \"nodemon dist/index.mjs\"",
     "build": "tsdown",
     "start": "node dist/index.mjs",
     "lint": "biome lint .",

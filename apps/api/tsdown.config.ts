@@ -11,6 +11,9 @@ export default defineConfig((options: InlineConfig): UserConfig => {
     treeshake: !isDev,
     sourcemap: true,
     outDir: "dist",
-    noExternal: ["@repo/common"],
+    // Workspace packages (@repo/*) export raw .ts source files, so they
+    // must be bundled inline — Node can't run .ts imports at runtime.
+    noExternal: [/^@repo\//],
+    inlineOnly: false,
   };
 });
