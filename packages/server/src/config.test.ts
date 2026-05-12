@@ -1,7 +1,7 @@
 import { it } from "@effect/vitest";
 import { ConfigProvider, Effect } from "effect";
 import { expect } from "vitest";
-import { LogConfig, ServerConfig } from "./config.js";
+import { ApiConfig, LogConfig, ServerConfig } from "./config.js";
 
 it.effect(
   "ServerConfig loads default port 3000 and host 0.0.0.0 when no env vars set",
@@ -58,6 +58,26 @@ it.effect("LogConfig reads LOG_LEVEL and LOG_PRETTY from environment", () =>
           ["LOG_PRETTY", "true"],
         ]),
       ),
+    ),
+  ),
+);
+
+it.effect(
+  "ApiConfig loads default apiUrl http://localhost:3001 when no env vars set",
+  () =>
+    Effect.gen(function* () {
+      const config = yield* ApiConfig;
+      expect(config.apiUrl).toBe("http://localhost:3001");
+    }).pipe(Effect.withConfigProvider(ConfigProvider.fromMap(new Map()))),
+);
+
+it.effect("ApiConfig reads API_URL from environment", () =>
+  Effect.gen(function* () {
+    const config = yield* ApiConfig;
+    expect(config.apiUrl).toBe("https://api.example.com");
+  }).pipe(
+    Effect.withConfigProvider(
+      ConfigProvider.fromMap(new Map([["API_URL", "https://api.example.com"]])),
     ),
   ),
 );

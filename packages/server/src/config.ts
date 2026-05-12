@@ -40,3 +40,17 @@ export const LogConfig = Effect.all({
   logLevel: Config.string("LOG_LEVEL").pipe(Config.withDefault("info")),
   prettyPrint: Config.boolean("LOG_PRETTY").pipe(Config.withDefault(false)),
 });
+
+/**
+ * ApiConfig provides the upstream API server URL.
+ *
+ * - API_URL: full URL of the API server (default: "http://localhost:3001")
+ *
+ * Used by the web server to proxy /api/* requests to the API server,
+ * replacing the previously hardcoded URL.
+ */
+export const ApiConfig = Effect.all({
+  apiUrl: Config.string("API_URL").pipe(
+    Config.withDefault("http://localhost:3001"),
+  ),
+});

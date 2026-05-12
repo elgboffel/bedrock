@@ -70,9 +70,13 @@ export const FastifyLive = Layer.scoped(
           },
         }),
       ),
-      // Release: close the Fastify instance gracefully
+      // Release: close the Fastify instance gracefully.
+      // Note: wrapping with async/await ensures a real Promise, since some
+      // Fastify methods return PromiseLike with one-shot .then() behavior.
       (app) =>
-        Effect.promise(() => app.close()).pipe(
+        Effect.promise(async () => {
+          await app.close();
+        }).pipe(
           Effect.tap(() => Effect.logInfo("Fastify server closed gracefully")),
         ),
     );
