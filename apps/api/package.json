@@ -10,22 +10,27 @@
     "lint": "biome lint .",
     "typecheck": "tsc --noEmit",
     "format": "biome format .",
-    "test": "vitest run"
+    "test": "vitest run",
+    "test:integration": "vitest run --config vitest.integration.config.ts"
   },
   "dependencies": {
     "@repo/common": "workspace:*",
+    "@repo/database": "workspace:*",
     "@repo/server": "workspace:*",
     "effect": "^3.21.2",
     "@effect/platform-node": "^0.106.0",
+    "@effect/sql": "^0.51.1",
     "fastify": "^5.0.0"
   },
   "devDependencies": {
     "@repo/typescript-config": "workspace:*",
     "@effect/vitest": "^0.29.0",
+    "@testcontainers/postgresql": "^11.14.0",
+    "testcontainers": "^11.14.0",
     "@types/node": "^20.0.0",
     "concurrently": "^9.2.1",
     "nodemon": "^3.1.14",
     "tsdown": "^0.20.3",
-    "vitest": "^3.2.1"
+    "vitest": "^3.2.4"
   }
 }

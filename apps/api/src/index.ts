@@ -19,10 +19,12 @@
  */
 
 import { NodeRuntime } from "@effect/platform-node";
+import { PostgresLive } from "@repo/database/client";
 import { ServerConfig } from "@repo/server/config";
 import { FastifyLive, FastifyServer } from "@repo/server/fastify";
 import { PinoLoggerLive } from "@repo/server/logger";
-import { ConfigProvider, Effect, Layer } from "effect";
+import { Effect, Layer } from "effect";
+import { registerDbRoutes } from "./db-routes.js";
 import { registerRoutes } from "./routes.js";
 
 /**
@@ -36,8 +38,9 @@ const program = Effect.gen(function* () {
   const app = yield* FastifyServer;
   const config = yield* ServerConfig;
 
-  // Register all API routes
+  // Register all API routes (non-DB routes + database-backed routes)
   yield* registerRoutes;
+  yield* registerDbRoutes;
 
   // Start listening -- this is the only place we call listen()
   yield* Effect.promise(() =>
@@ -63,7 +66,20 @@ const program = Effect.gen(function* () {
  * (wire dependencies). This builds a dependency graph that Effect
  * resolves automatically.
  */
-const AppLive = FastifyLive.pipe(Layer.provide(PinoLoggerLive));
+/**
+ * The application Layer stack.
+ *
+ * Layers are composed with Layer.merge (provide both) and Layer.provide
+ * (wire dependencies). This builds a dependency graph that Effect
+ * resolves automatically.
+ *
+ * - FastifyLive: Fastify server with acquireRelease lifecycle
+ * - PostgresLive: PostgreSQL connection pool (reads DbConfig from env)
+ * - PinoLoggerLive: pino-backed Effect logger
+ */
+const AppLive = Layer.merge(FastifyLive, PostgresLive).pipe(
+  Layer.provide(PinoLoggerLive),
+);
 
 /**
  * Run the program.
