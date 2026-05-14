@@ -17,6 +17,19 @@ import pino from "pino";
 import { LogConfig } from "./config.js";
 
 /**
+ * pino uses `export =` in its type definitions (CJS-style). When this file
+ * is type-checked under NodeNext module resolution (which happens when
+ * apps/api imports @repo/server source directly), TypeScript doesn't see
+ * call signatures on the default import. The runtime value is always the
+ * factory function regardless of resolution mode, so we safely cast here
+ * to keep both Bundler and NodeNext happy.
+ */
+const createPino: {
+  (opts?: pino.LoggerOptions): pino.Logger;
+  (opts: pino.LoggerOptions, stream: pino.DestinationStream): pino.Logger;
+} = pino as any;
+
+/**
  * Maps Effect log levels to pino log levels.
  * Effect and pino have slightly different level names.
  */
@@ -54,7 +67,9 @@ export const makePinoLoggerLayer = (dest?: pino.DestinationStream) =>
         ...(config.prettyPrint ? { transport: { target: "pino-pretty" } } : {}),
       };
 
-      const pinoLogger = dest ? pino(pinoOptions, dest) : pino(pinoOptions);
+      const pinoLogger = dest
+        ? createPino(pinoOptions, dest)
+        : createPino(pinoOptions);
 
       /**
        * A custom Effect Logger that forwards log messages to pino.
