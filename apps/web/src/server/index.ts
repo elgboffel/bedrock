@@ -32,6 +32,7 @@ import fastifyStatic from "@fastify/static";
 import { ServerConfig } from "@repo/server/config";
 import { FastifyLive, FastifyServer } from "@repo/server/fastify";
 import { PinoLoggerLive } from "@repo/server/logger";
+import { TracingLive } from "@repo/telemetry/tracing";
 import { Effect, Layer } from "effect";
 import { AstroDevLive } from "./astro-dev.js";
 import { registerPlugins } from "./plugins.js";
@@ -127,10 +128,15 @@ const program = Effect.gen(function* () {
  *
  * Layer composition:
  * - FastifyLive: Fastify server with acquireRelease lifecycle
+ * - TracingLive: OpenTelemetry tracing (Effect.withSpan -> OTel spans)
  * - PinoLoggerLive: pino-backed Effect logger
  * - NodeContext.layer: provides CommandExecutor for child processes
+ *
+ * Set OTEL_SERVICE_NAME=web in environment for proper span attribution.
  */
-const BaseLayers = FastifyLive.pipe(Layer.provide(PinoLoggerLive));
+const BaseLayers = Layer.merge(FastifyLive, TracingLive).pipe(
+  Layer.provide(PinoLoggerLive),
+);
 
 const AppLive = isProduction
   ? BaseLayers

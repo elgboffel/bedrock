@@ -12,7 +12,9 @@ import { registerRoutes } from "./routes.js";
  * LogConfig defaults: logLevel "info", prettyPrint false
  * ApiConfig defaults: apiUrl "http://localhost:3001"
  */
-const testConfigProvider = ConfigProvider.fromMap(new Map());
+const testConfigProvider = ConfigProvider.fromMap(
+  new Map([["OTEL_SERVICE_NAME", "web-test"]]),
+);
 
 describe("web server routes", () => {
   it.effect("GET /health returns status ok and mode", () =>
