@@ -23,6 +23,7 @@ import { PostgresLive } from "@repo/database/client";
 import { ServerConfig } from "@repo/server/config";
 import { FastifyLive, FastifyServer } from "@repo/server/fastify";
 import { PinoLoggerLive } from "@repo/server/logger";
+import { TracingLive } from "@repo/telemetry/tracing";
 import { Effect, Layer } from "effect";
 import { registerDbRoutes } from "./db-routes.js";
 import { registerRoutes } from "./routes.js";
@@ -75,9 +76,12 @@ const program = Effect.gen(function* () {
  *
  * - FastifyLive: Fastify server with acquireRelease lifecycle
  * - PostgresLive: PostgreSQL connection pool (reads DbConfig from env)
+ * - TracingLive: OpenTelemetry tracing (Effect.withSpan -> OTel spans)
  * - PinoLoggerLive: pino-backed Effect logger
+ *
+ * Set OTEL_SERVICE_NAME=api in environment for proper span attribution.
  */
-const AppLive = Layer.merge(FastifyLive, PostgresLive).pipe(
+const AppLive = Layer.mergeAll(FastifyLive, PostgresLive, TracingLive).pipe(
   Layer.provide(PinoLoggerLive),
 );
 

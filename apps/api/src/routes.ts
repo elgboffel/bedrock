@@ -46,6 +46,12 @@ export const registerRoutes = Effect.gen(function* () {
    * Uses effectRoute to wrap the handler. The Effect.succeed call means
    * this route can never fail with a typed error -- it always returns 200.
    */
+  /**
+   * Effect.withSpan wraps this handler in an OpenTelemetry span.
+   * When the Tracing Layer is active, this produces a real OTel span
+   * visible in your observability backend (Jaeger, Grafana, etc.).
+   * Without the Tracing Layer, withSpan is a no-op.
+   */
   app.get(
     "/",
     effectRoute(() =>
@@ -53,7 +59,7 @@ export const registerRoutes = Effect.gen(function* () {
         hello: "world 2",
         common: sayHello("API"),
         constant: COMMON_CONSTANT,
-      }),
+      }).pipe(Effect.withSpan("GET /")),
     ),
   );
 
@@ -71,7 +77,7 @@ export const registerRoutes = Effect.gen(function* () {
       const item = items[id];
 
       if (item) {
-        return Effect.succeed(item);
+        return Effect.succeed(item).pipe(Effect.withSpan("GET /item/:id"));
       }
 
       return Effect.fail(new NotFound({ resource: `Item(${id})` }));

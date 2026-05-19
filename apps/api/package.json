@@ -17,6 +17,7 @@
     "@repo/common": "workspace:*",
     "@repo/database": "workspace:*",
     "@repo/server": "workspace:*",
+    "@repo/telemetry": "workspace:*",
     "effect": "^3.21.2",
     "@effect/platform-node": "^0.106.0",
     "@effect/sql": "^0.51.1",

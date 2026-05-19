@@ -4,7 +4,9 @@ import { ConfigProvider, Effect } from "effect";
 import { describe, expect } from "vitest";
 import { registerRoutes } from "./routes.js";
 
-const testConfigProvider = ConfigProvider.fromMap(new Map());
+const testConfigProvider = ConfigProvider.fromMap(
+  new Map([["OTEL_SERVICE_NAME", "api-test"]]),
+);
 
 describe("API routes", () => {
   it.effect("GET / returns hello world response with common package data", () =>
