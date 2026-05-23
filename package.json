@@ -3,7 +3,8 @@
   "version": "1.0.0",
   "private": true,
   "scripts": {
-    "dev": "turbo dev",
+    "preflight": "bash tooling/scripts/preflight.sh",
+    "dev": "pnpm preflight && bash -c 'set -a && source .env && set +a && exec turbo dev'",
     "start": "turbo start",
     "build": "turbo build",
     "lint": "turbo lint",

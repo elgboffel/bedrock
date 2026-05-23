@@ -1,11 +1,14 @@
 node_modules
 dist
 build
+.git
+.gitignore
 .turbo
 .astro
 .DS_Store
 *.log
-.idea
-.scratch
 .env
-
+.scratch
+.husky
+.vscode
+.idea
