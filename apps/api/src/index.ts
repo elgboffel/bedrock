@@ -1,25 +1,17 @@
 /**
  * API server entrypoint.
  *
- * This is the main entry point for the API application. It uses Effect
- * to compose all the server infrastructure:
- *
- * - FastifyLive: manages the Fastify server lifecycle (create + close)
+ * Uses Effect to compose server infrastructure:
+ * - FastifyLive: Fastify server lifecycle (create + close)
+ * - DrizzleLive: Drizzle ORM database client (connection pool + typed queries)
  * - PinoLoggerLive: routes Effect.log calls to pino
- * - ServerConfig / LogConfig: validated environment configuration
+ * - TracingLive: OpenTelemetry tracing
  *
- * NodeRuntime.runMain is the top-level runner that:
- * 1. Executes the Effect program
- * 2. Handles SIGINT/SIGTERM signals automatically
- * 3. Exits the process with the appropriate code on completion
- *
- * This replaces the previous pattern of:
- *   async function start() { try { ... } catch { process.exit(1) } }
- *   process.on("SIGINT", ...)
+ * NodeRuntime.runMain handles SIGINT/SIGTERM and process exit.
  */
 
 import { NodeRuntime } from "@effect/platform-node";
-import { PostgresLive } from "@repo/database/client";
+import { DrizzleLive } from "@repo/database/client";
 import { ServerConfig } from "@repo/server/config";
 import { FastifyLive, FastifyServer } from "@repo/server/fastify";
 import { PinoLoggerLive } from "@repo/server/logger";
@@ -63,25 +55,12 @@ const program = Effect.gen(function* () {
 /**
  * The application Layer stack.
  *
- * Layers are composed with Layer.merge (provide both) and Layer.provide
- * (wire dependencies). This builds a dependency graph that Effect
- * resolves automatically.
- */
-/**
- * The application Layer stack.
- *
- * Layers are composed with Layer.merge (provide both) and Layer.provide
- * (wire dependencies). This builds a dependency graph that Effect
- * resolves automatically.
- *
  * - FastifyLive: Fastify server with acquireRelease lifecycle
- * - PostgresLive: PostgreSQL connection pool (reads DbConfig from env)
+ * - DrizzleLive: Drizzle ORM client (reads DbConfig from env)
  * - TracingLive: OpenTelemetry tracing (Effect.withSpan -> OTel spans)
  * - PinoLoggerLive: pino-backed Effect logger
- *
- * Set OTEL_SERVICE_NAME=api in environment for proper span attribution.
  */
-const AppLive = Layer.mergeAll(FastifyLive, PostgresLive, TracingLive).pipe(
+const AppLive = Layer.mergeAll(FastifyLive, DrizzleLive, TracingLive).pipe(
   Layer.provide(PinoLoggerLive),
 );
 

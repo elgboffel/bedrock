@@ -1,51 +1,45 @@
 /**
- * PostgreSQL connection Layer.
+ * Drizzle + Effect PostgreSQL connection Layer.
  *
- * This module wraps `@effect/sql-pg` into a Layer that reads connection
- * settings from DbConfig and manages the pool lifecycle:
+ * Provides a managed Drizzle ORM instance via Effect's Layer system.
+ * Uses `drizzle-orm/effect-postgres` for native Effect integration
+ * with `@effect/sql-pg` as the underlying driver.
  *
- * - On acquisition: creates a connection pool, validates connectivity
- * - On release (scope finalization): drains and closes the pool
+ * Usage:
  *
- * The Layer provides two tags in the Effect context:
+ *   import { DB, DrizzleLive } from "@repo/database/client";
+ *   import { items } from "@repo/database/schema";
  *
- * 1. `SqlClient` (from @effect/sql) — the generic SQL client interface.
- *    Use this in most code: `const sql = yield* SqlClient.SqlClient`
- *
- * 2. `PgClient` (from @effect/sql-pg) — PostgreSQL-specific extensions
- *    (LISTEN/NOTIFY, JSON columns). Only use when you need PG features.
- *
- * How to use in your code:
- *
- *   import { SqlClient } from "@effect/sql";
- *
- *   const getUsers = Effect.gen(function* () {
- *     const sql = yield* SqlClient.SqlClient;
- *     return yield* sql`SELECT * FROM users`;
+ *   const program = Effect.gen(function* () {
+ *     const db = yield* DB;
+ *     const rows = yield* db.select().from(items);
  *   });
  *
- *   // Provide the Layer in your app's Layer stack:
- *   program.pipe(Effect.provide(PostgresLive), ...);
+ *   program.pipe(Effect.provide(DrizzleLive), Effect.scoped, ...);
  */
 
 import { PgClient } from "@effect/sql-pg";
-import { Config, Effect, Layer, Redacted } from "effect";
+import * as PgDrizzle from "drizzle-orm/effect-postgres";
+import { Context, Effect, Layer, Redacted } from "effect";
+import { types } from "pg";
 import { DbConfig } from "./config.js";
+import * as schema from "./schema/index.js";
+
+/** The Drizzle database instance type. */
+type DrizzleDatabase = Effect.Effect.Success<
+  ReturnType<typeof PgDrizzle.makeWithDefaults<typeof schema>>
+>;
+
+/** Effect Tag for dependency injection of the Drizzle instance. */
+export class DB extends Context.Tag("DB")<DB, DrizzleDatabase>() {}
 
 /**
- * PostgresLive — Layer providing a managed PostgreSQL connection pool.
+ * Internal Layer: configures `@effect/sql-pg` PgClient from DbConfig.
  *
- * How this works:
- * 1. `Layer.unwrapEffect` takes an Effect that produces a Layer.
- * 2. Inside, we read DbConfig to get connection settings.
- * 3. We pass those settings to `PgClient.layer` which creates the pool.
- * 4. PgClient.layer uses acquireRelease internally — pool is created on
- *    scope open and drained/closed on scope finalization.
- *
- * The resulting Layer's error channel includes ConfigError (from reading
- * DbConfig) and SqlError (from connecting to the database).
+ * Overrides pg's type parser for date/time types so Drizzle handles
+ * parsing instead of the pg driver.
  */
-export const PostgresLive = Layer.unwrapEffect(
+const PgClientLive = Layer.unwrapEffect(
   Effect.gen(function* () {
     const config = yield* DbConfig;
 
@@ -56,6 +50,40 @@ export const PostgresLive = Layer.unwrapEffect(
       username: config.username,
       password: Redacted.make(config.password),
       maxConnections: config.poolSize,
+      types: {
+        getTypeParser: (typeId: number, format: string | undefined) => {
+          // Let Drizzle handle date/time parsing instead of pg driver
+          if (
+            [1184, 1114, 1082, 1186, 1231, 1115, 1185, 1187, 1182].includes(
+              typeId,
+            )
+          ) {
+            return (val: string) => val;
+          }
+          return types.getTypeParser(
+            typeId,
+            format as "text" | "binary" | undefined,
+          );
+        },
+      },
     });
   }),
 );
+
+/**
+ * Internal Layer: creates the Drizzle instance from PgClient.
+ */
+const DBLive = Layer.effect(
+  DB,
+  Effect.gen(function* () {
+    return yield* PgDrizzle.makeWithDefaults({ schema });
+  }),
+);
+
+/**
+ * DrizzleLive — full Layer providing a managed Drizzle instance.
+ *
+ * Composes PgClient (connection pool) with Drizzle ORM.
+ * Reads DB_HOST, DB_PORT, DB_NAME, DB_USER, DB_PASSWORD from environment.
+ */
+export const DrizzleLive = Layer.provideMerge(DBLive, PgClientLive);
