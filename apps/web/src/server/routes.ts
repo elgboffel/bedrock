@@ -1,35 +1,17 @@
-/**
- * Web server route registration.
- *
- * Routes are defined as an Effect that requires FastifyServer in its
- * context. When this Effect runs, it registers all routes on the
- * Fastify instance.
- *
- * Each route handler uses `effectRoute` — the adapter that converts
- * Effect-returning functions into Fastify handlers. This means:
- * - Success values become 200 JSON responses
- * - Typed errors become appropriate HTTP error responses
- * - Unexpected defects become generic 500 responses
- */
+/** Web server route registration. Routes are registered as an Effect that requires FastifyServer + RouteRunner. */
 
-import { effectRoute } from "@repo/server/effect-route";
 import { FastifyServer } from "@repo/server/fastify";
+import { RouteRunner } from "@repo/server/route-runner";
 import { Effect } from "effect";
 
-/**
- * Register all web server routes.
- *
- * This is an Effect so it can access the FastifyServer from context,
- * keeping route registration composable and testable.
- */
+/** Registers all web server routes. */
 export const registerRoutes = Effect.gen(function* () {
   const app = yield* FastifyServer;
+  const { route } = yield* RouteRunner;
 
-  // Health check endpoint — returns server status and current mode.
-  // Uses effectRoute so it follows the same pattern as all other routes.
   app.get(
     "/health",
-    effectRoute(() =>
+    route(() =>
       Effect.succeed({
         status: "ok",
         mode:

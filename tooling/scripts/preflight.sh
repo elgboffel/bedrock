@@ -23,7 +23,7 @@ if ! docker info > /dev/null 2>&1; then
 fi
 
 # 3. Check if Postgres container is running
-CONTAINER_NAME="antigravity-postgres"
+CONTAINER_NAME="bedrock-postgres"
 
 if docker ps --format '{{.Names}}' | grep -q "^${CONTAINER_NAME}$"; then
   info "Postgres container is already running"

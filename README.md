@@ -1,4 +1,4 @@
-# Antigravity Monorepo
+# Bedrock Monorepo
 
 This is a high-performance monorepo build with **TurboRepo**, **pnpm**, **Fastify**, **Astro**, and **React**. It features a modern toolchain including **Biome**, **Changesets**, **Syncpack**, and **tsup**.
 

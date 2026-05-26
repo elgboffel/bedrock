@@ -51,6 +51,7 @@ it.effect("Fastify Layer closes the instance when scope finalizes", () =>
     // We verify by calling close() again -- it should be idempotent
     // if the release already closed it.
     expect(appRef).not.toBeNull();
+    // biome-ignore lint/style/noNonNullAssertion: TS can't track the assignment inside the inner Effect closure
     yield* Effect.promise(() => appRef!.close());
   }).pipe(Effect.withConfigProvider(testConfigProvider)),
 );

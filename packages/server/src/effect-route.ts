@@ -1,70 +1,148 @@
-/**
- * Effect-to-Fastify route adapter.
- *
- * `effectRoute` bridges Effect handlers and Fastify's route system.
- * You write your route logic as an Effect that returns data and may
- * fail with typed errors. The adapter runs the Effect, and:
- *
- * - On success: sends the return value as a JSON response (200).
- * - On typed error: maps it to an HTTP status code via the error mapper.
- * - On defect (unexpected throw): returns a generic 500.
- *
- * This keeps route handlers pure and testable — they don't need to
- * know about HTTP status codes or Fastify's reply API.
- *
- * Example:
- *   app.get("/users/:id", effectRoute((req) =>
- *     Effect.gen(function* () {
- *       const user = yield* findUser(req.params.id);
- *       return user;
- *     })
- *   ));
- */
-
-import { Cause, Effect, Exit, Option } from "effect";
+import { Effect, ParseResult, Runtime, Schema } from "effect";
 import type { FastifyReply, FastifyRequest } from "fastify";
 import { mapErrorToHttp } from "./error-mapper.js";
+import { ValidationError } from "./errors.js";
+
+// --- ParseError -> ValidationError ---
+
+function parseErrorToValidation(
+  error: ParseResult.ParseError,
+  source: string,
+): ValidationError {
+  const message = ParseResult.TreeFormatter.formatErrorSync(error);
+  return new ValidationError({
+    message: `Validation failed on ${source}: ${message}`,
+  });
+}
+
+// --- Effect-aware runner ---
+
+function handleEffect<T>(
+  effect: Effect.Effect<T, { readonly _tag: string }>,
+  reply: FastifyReply,
+): Effect.Effect<void> {
+  return effect.pipe(
+    Effect.withSpan("effect.handleRequest"),
+    Effect.andThen((value) => Effect.sync(() => reply.status(200).send(value))),
+    Effect.catchAll((error) => {
+      const httpError = mapErrorToHttp(error);
+      return Effect.logWarning(`Typed route error: ${error._tag}`).pipe(
+        Effect.andThen(
+          Effect.sync(() =>
+            reply.status(httpError.status).send(httpError.body),
+          ),
+        ),
+      );
+    }),
+    Effect.catchAllDefect((defect) =>
+      Effect.logError(`Route defect: ${defect}`).pipe(
+        Effect.andThen(
+          Effect.sync(() =>
+            reply.status(500).send({
+              error: "InternalError",
+              message: "An unexpected error occurred",
+            }),
+          ),
+        ),
+      ),
+    ),
+  );
+}
+
+// --- Schema config types ---
+
+// biome-ignore lint/suspicious/noExplicitAny: Schema.Schema requires two type parameters for encoded/decoded types
+type AnySchema = Schema.Schema<any, any>;
+
+export interface RouteSchemas {
+  body?: AnySchema;
+  params?: AnySchema;
+  query?: AnySchema;
+}
+
+type Decoded<S extends RouteSchemas> = {
+  body: S["body"] extends Schema.Schema<infer A, infer _E> ? A : unknown;
+  params: S["params"] extends Schema.Schema<infer A, infer _E> ? A : unknown;
+  query: S["query"] extends Schema.Schema<infer A, infer _E> ? A : unknown;
+};
+
+type HandlerFn<T, S extends RouteSchemas> = (
+  request: FastifyRequest,
+  data: Decoded<S>,
+) => Effect.Effect<T, { readonly _tag: string }>;
+
+type SimpleHandlerFn<T> = (
+  request: FastifyRequest,
+  reply: FastifyReply,
+) => Effect.Effect<T, { readonly _tag: string }>;
+
+// --- Schema validation pipeline ---
+
+function buildSchemaEffect<T, S extends RouteSchemas>(
+  schemas: S,
+  handler: HandlerFn<T, S>,
+  request: FastifyRequest,
+): Effect.Effect<T, { readonly _tag: string }> {
+  return Effect.gen(function* () {
+    const body = schemas.body
+      ? yield* Schema.decodeUnknown(schemas.body)(request.body).pipe(
+          Effect.mapError((e) => parseErrorToValidation(e, "body")),
+        )
+      : request.body;
+
+    const params = schemas.params
+      ? yield* Schema.decodeUnknown(schemas.params)(request.params).pipe(
+          Effect.mapError((e) => parseErrorToValidation(e, "params")),
+        )
+      : request.params;
+
+    const query = schemas.query
+      ? yield* Schema.decodeUnknown(schemas.query)(request.query).pipe(
+          Effect.mapError((e) => parseErrorToValidation(e, "query")),
+        )
+      : request.query;
+
+    return yield* handler(request, { body, params, query } as Decoded<S>);
+  });
+}
+
+// --- Runtime-aware factory ---
 
 /**
- * Converts an Effect-returning handler into a Fastify route handler.
+ * Creates route helpers that use the provided Runtime for execution.
+ * This enables logging via PinoLoggerLive and tracing via TracingLive,
+ * since the runtime carries the fiber refs (including the logger) from the
+ * scope where it was captured.
  *
- * The handler receives the Fastify request and reply objects and returns
- * an Effect. The Effect's success value becomes the JSON response body.
- * Typed errors (with a `_tag` field) are mapped to HTTP error responses.
- * Unexpected defects produce a 500.
+ * Usage:
+ *   const registerRoutes = Effect.gen(function* () {
+ *     const app = yield* FastifyServer;
+ *     const runtime = yield* Effect.runtime();
+ *     const { route, routeWithSchema } = createEffectRoute(runtime);
+ *     app.get("/hello", route(() => Effect.succeed({ hello: "world" })));
+ *     app.post("/items", routeWithSchema({ body: CreateItem }, (req, { body }) => ...));
+ *   });
  */
-export function effectRoute<T>(
-  handler: (
-    request: FastifyRequest,
-    reply: FastifyReply,
-  ) => Effect.Effect<T, { readonly _tag: string }>,
-) {
-  return async (request: FastifyRequest, reply: FastifyReply) => {
-    const effect = handler(request, reply);
+export function createEffectRoute<R>(runtime: Runtime.Runtime<R>) {
+  const run = Runtime.runPromise(runtime);
 
-    // Run the Effect and inspect the Exit value to distinguish
-    // between success, expected errors, and unexpected defects.
-    const exit = await Effect.runPromiseExit(effect);
+  function route<T>(
+    handler: SimpleHandlerFn<T>,
+  ): (request: FastifyRequest, reply: FastifyReply) => Promise<void> {
+    return async (request: FastifyRequest, reply: FastifyReply) => {
+      await run(handleEffect(handler(request, reply), reply));
+    };
+  }
 
-    if (Exit.isSuccess(exit)) {
-      return reply.status(200).send(exit.value);
-    }
+  function routeWithSchema<T, S extends RouteSchemas>(
+    schemas: S,
+    handler: HandlerFn<T, S>,
+  ): (request: FastifyRequest, reply: FastifyReply) => Promise<void> {
+    return async (request: FastifyRequest, reply: FastifyReply) => {
+      const effect = buildSchemaEffect(schemas, handler, request);
+      await run(handleEffect(effect, reply));
+    };
+  }
 
-    // Exit.isFailure — inspect the Cause to determine error type
-    const cause = exit.cause;
-
-    // Cause.failureOption extracts the typed error (if any) as an Option
-    const failureOption = Cause.failureOption(cause);
-
-    if (Option.isSome(failureOption)) {
-      const httpError = mapErrorToHttp(failureOption.value);
-      return reply.status(httpError.status).send(httpError.body);
-    }
-
-    // Defect (unexpected throw/die) — generic 500, no details leaked
-    return reply.status(500).send({
-      error: "InternalError",
-      message: "An unexpected error occurred",
-    });
-  };
+  return { route, routeWithSchema };
 }

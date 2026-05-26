@@ -15,10 +15,10 @@ import { DrizzleLive } from "@repo/database/client";
 import { ServerConfig } from "@repo/server/config";
 import { FastifyLive, FastifyServer } from "@repo/server/fastify";
 import { PinoLoggerLive } from "@repo/server/logger";
+import { RouteRunnerLive } from "@repo/server/route-runner";
 import { TracingLive } from "@repo/telemetry/tracing";
 import { Effect, Layer } from "effect";
-import { registerDbRoutes } from "./db-routes.js";
-import { registerRoutes } from "./routes.js";
+import { registerRoutes } from "./routes/index.js";
 
 /**
  * The main application Effect.
@@ -31,9 +31,8 @@ const program = Effect.gen(function* () {
   const app = yield* FastifyServer;
   const config = yield* ServerConfig;
 
-  // Register all API routes (non-DB routes + database-backed routes)
+  // Register all API routes
   yield* registerRoutes;
-  yield* registerDbRoutes;
 
   // Start listening -- this is the only place we call listen()
   yield* Effect.promise(() =>
@@ -60,9 +59,12 @@ const program = Effect.gen(function* () {
  * - TracingLive: OpenTelemetry tracing (Effect.withSpan -> OTel spans)
  * - PinoLoggerLive: pino-backed Effect logger
  */
-const AppLive = Layer.mergeAll(FastifyLive, DrizzleLive, TracingLive).pipe(
-  Layer.provide(PinoLoggerLive),
-);
+const AppLive = Layer.mergeAll(
+  FastifyLive,
+  DrizzleLive,
+  TracingLive,
+  RouteRunnerLive,
+).pipe(Layer.provide(PinoLoggerLive));
 
 /**
  * Run the program.

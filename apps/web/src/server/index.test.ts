@@ -1,20 +1,25 @@
 import { it } from "@effect/vitest";
 import { ApiConfig } from "@repo/server/config";
 import { FastifyLive, FastifyServer } from "@repo/server/fastify";
-import { ConfigProvider, Effect } from "effect";
+import { RouteRunnerLive } from "@repo/server/route-runner";
+import { ConfigProvider, Effect, Layer } from "effect";
 import { describe, expect } from "vitest";
 import { registerPlugins } from "./plugins.js";
 import { registerRoutes } from "./routes.js";
 
 /**
- * Test ConfigProvider — empty map means all configs use defaults.
- * ServerConfig defaults: port 3000, host "0.0.0.0"
- * LogConfig defaults: logLevel "info", prettyPrint false
- * ApiConfig defaults: apiUrl "http://localhost:3001"
+ * Test ConfigProvider — overrides API_URL to a port that's guaranteed
+ * unreachable so the proxy returns 502/503 instead of forwarding to
+ * a dev server that may be running on the default port (3001).
  */
 const testConfigProvider = ConfigProvider.fromMap(
-  new Map([["OTEL_SERVICE_NAME", "web-test"]]),
+  new Map([
+    ["OTEL_SERVICE_NAME", "web-test"],
+    ["API_URL", "http://127.0.0.1:1"],
+  ]),
 );
+
+const TestLayers = Layer.mergeAll(FastifyLive, RouteRunnerLive);
 
 describe("web server routes", () => {
   it.effect("GET /health returns status ok and mode", () =>
@@ -31,7 +36,7 @@ describe("web server routes", () => {
       expect(body.status).toBe("ok");
       expect(body).toHaveProperty("mode");
     }).pipe(
-      Effect.provide(FastifyLive),
+      Effect.provide(TestLayers),
       Effect.withConfigProvider(testConfigProvider),
       Effect.scoped,
     ),
@@ -57,7 +62,7 @@ describe("web server plugins", () => {
       // No proxy -> 404
       expect(response.statusCode).not.toBe(404);
     }).pipe(
-      Effect.provide(FastifyLive),
+      Effect.provide(TestLayers),
       Effect.withConfigProvider(testConfigProvider),
       Effect.scoped,
     ),
@@ -100,7 +105,7 @@ describe("web server bootstrap", () => {
       // Scope finalizes here — Fastify closes automatically via Layer release.
       // No manual signal handlers needed.
     }).pipe(
-      Effect.provide(FastifyLive),
+      Effect.provide(TestLayers),
       Effect.withConfigProvider(testConfigProvider),
       Effect.scoped,
     ),

@@ -1,6 +1,7 @@
 import { describe, expect, test } from "vitest";
 import { createErrorMapper, mapErrorToHttp } from "./error-mapper.js";
 import {
+  ConflictError,
   InternalError,
   NotFound,
   Unauthorized,
@@ -52,6 +53,23 @@ describe("mapErrorToHttp", () => {
     });
   });
 
+  test("ValidationError with fields nests them inside details", () => {
+    const error = new ValidationError({
+      message: "Validation failed",
+      fields: { email: ["is required"], name: ["too short"] },
+    });
+    const result = mapErrorToHttp(error);
+
+    expect(result.status).toBe(400);
+    expect(result.body).toEqual({
+      error: "ValidationError",
+      message: "Validation failed",
+      details: {
+        fields: { email: ["is required"], name: ["too short"] },
+      },
+    });
+  });
+
   test("InternalError maps to 500 with generic message", () => {
     const error = new InternalError({ message: "DB connection failed" });
     const result = mapErrorToHttp(error);
@@ -61,6 +79,32 @@ describe("mapErrorToHttp", () => {
     expect(result.body).toEqual({
       error: "InternalError",
       message: "An unexpected error occurred",
+    });
+  });
+
+  test("ConflictError maps to 409 with resource info", () => {
+    const error = new ConflictError({
+      resource: "Item",
+      detail: "name already exists",
+    });
+    const result = mapErrorToHttp(error);
+
+    expect(result.status).toBe(409);
+    expect(result.body).toEqual({
+      error: "ConflictError",
+      message: "Item already exists",
+      details: { detail: "name already exists" },
+    });
+  });
+
+  test("ConflictError without detail omits details", () => {
+    const error = new ConflictError({ resource: "Item" });
+    const result = mapErrorToHttp(error);
+
+    expect(result.status).toBe(409);
+    expect(result.body).toEqual({
+      error: "ConflictError",
+      message: "Item already exists",
     });
   });
 
@@ -83,8 +127,7 @@ describe("createErrorMapper", () => {
         status: 429,
         body: {
           error: "RateLimited",
-          message:
-            (error as unknown as { retryAfter: number }).retryAfter + "s",
+          message: `${(error as unknown as { retryAfter: number }).retryAfter}s`,
         },
       }),
     });

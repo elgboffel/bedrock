@@ -33,15 +33,13 @@ export const registerPlugins = Effect.gen(function* () {
   //
   // Note: Fastify's .register() returns a PromiseLike with a one-shot .then().
   // We wrap with async/await to produce a real Promise that Effect.promise
-  // can safely call .then() on. See the fastifyOp helper in index.ts.
+  // can safely call .then() on.
   yield* Effect.promise(async () => {
-    await app.register(async (scope) => {
-      await scope.register(fastifyProxy, {
-        upstream: apiConfig.apiUrl,
-        prefix: "/api",
-        rewritePrefix: "/",
-        http2: false,
-      });
+    await app.register(fastifyProxy, {
+      upstream: apiConfig.apiUrl,
+      prefix: "/api",
+      rewritePrefix: "/",
+      http2: false,
     });
   });
 });

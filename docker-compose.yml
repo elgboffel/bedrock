@@ -1,7 +1,7 @@
 services:
   postgres:
     image: postgres:16-alpine
-    container_name: antigravity-postgres
+    container_name: bedrock-postgres
     restart: unless-stopped
     environment:
       POSTGRES_DB: ${DB_NAME}
@@ -22,7 +22,7 @@ services:
   #   build:
   #     context: .
   #     dockerfile: apps/api/Dockerfile
-  #   container_name: antigravity-api
+  #   container_name: bedrock-api
   #   restart: unless-stopped
   #   environment:
   #     DB_HOST: postgres
@@ -31,7 +31,7 @@ services:
   #     DB_USER: ${DB_USER}
   #     DB_PASSWORD: ${DB_PASSWORD}
   #     SERVER_PORT: 3001
-  #     OTEL_SERVICE_NAME: antigravity-api
+  #     OTEL_SERVICE_NAME: bedrock-api
   #   ports:
   #     - "3001:3001"
   #   depends_on:
@@ -42,12 +42,12 @@ services:
   #   build:
   #     context: .
   #     dockerfile: apps/web/Dockerfile
-  #   container_name: antigravity-web
+  #   container_name: bedrock-web
   #   restart: unless-stopped
   #   environment:
   #     SERVER_PORT: 3000
   #     API_URL: http://api:3001
-  #     OTEL_SERVICE_NAME: antigravity-web
+  #     OTEL_SERVICE_NAME: bedrock-web
   #   ports:
   #     - "3000:3000"
   #   depends_on:

@@ -4,7 +4,7 @@ import {
   SimpleSpanProcessor,
 } from "@opentelemetry/sdk-trace-base";
 import { ConfigProvider, Effect } from "effect";
-import { describe, expect } from "vitest";
+import { expect } from "vitest";
 import { makeTracingLayer } from "./tracing.js";
 
 /**
@@ -47,7 +47,7 @@ it.effect(
 
         const span = spans.find((s) => s.name === "test-operation");
         expect(span).toBeDefined();
-        expect(span!.resource.attributes["service.name"]).toBe("test-tracing");
+        expect(span?.resource.attributes["service.name"]).toBe("test-tracing");
       }).pipe(Effect.provide(layer), Effect.scoped);
     }).pipe(Effect.withConfigProvider(testConfig)),
 );
@@ -69,7 +69,7 @@ it.effect("Effect.withSpan captures nested spans sharing the same trace", () =>
       expect(child).toBeDefined();
 
       // Both spans should share the same traceId
-      expect(child!.spanContext().traceId).toBe(parent!.spanContext().traceId);
+      expect(child?.spanContext().traceId).toBe(parent?.spanContext().traceId);
     }).pipe(Effect.provide(layer), Effect.scoped);
   }).pipe(Effect.withConfigProvider(testConfig)),
 );

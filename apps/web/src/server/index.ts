@@ -32,6 +32,7 @@ import fastifyStatic from "@fastify/static";
 import { ServerConfig } from "@repo/server/config";
 import { FastifyLive, FastifyServer } from "@repo/server/fastify";
 import { PinoLoggerLive } from "@repo/server/logger";
+import { RouteRunnerLive } from "@repo/server/route-runner";
 import { TracingLive } from "@repo/telemetry/tracing";
 import { Effect, Layer } from "effect";
 import { AstroDevLive } from "./astro-dev.js";
@@ -134,9 +135,11 @@ const program = Effect.gen(function* () {
  *
  * Set OTEL_SERVICE_NAME=web in environment for proper span attribution.
  */
-const BaseLayers = Layer.merge(FastifyLive, TracingLive).pipe(
-  Layer.provide(PinoLoggerLive),
-);
+const BaseLayers = Layer.mergeAll(
+  FastifyLive,
+  TracingLive,
+  RouteRunnerLive,
+).pipe(Layer.provide(PinoLoggerLive));
 
 const AppLive = isProduction
   ? BaseLayers

@@ -32,6 +32,7 @@ const defaultMigrationsFolder = path.resolve(__dirname, "../drizzle");
  * @param migrationsFolder - Optional override for the migrations folder path
  */
 export const runMigrations = (
+  // biome-ignore lint/suspicious/noExplicitAny: Drizzle's EffectPgDatabase requires generic type params
   db: EffectPgDatabase<any, any>,
   migrationsFolder = defaultMigrationsFolder,
 ) =>

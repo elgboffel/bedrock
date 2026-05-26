@@ -6,7 +6,7 @@ import { QueryProvider } from "./QueryProvider";
 const ApiCheckInner = () => {
   const [enabled, setEnabled] = useState(false);
 
-  const { data, error, isFetching } = useQuery({
+  const { data, error } = useQuery({
     queryKey: ["api-check"],
     queryFn: async () => {
       const res = await fetch("/api/db/items/1");

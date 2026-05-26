@@ -2,6 +2,7 @@
 import { sayHello } from "@repo/common/utils";
 import { Button } from "@repo/ui/button";
 import { ApiCheck } from "../components/ApiCheck";
+import { ItemCreate } from "../components/ItemCreate";
 ---
 
 <html lang="en">
@@ -22,6 +23,9 @@ import { ApiCheck } from "../components/ApiCheck";
         </div>
         <div style="padding: 20px;">
             <ApiCheck client:visible />
+        </div>
+        <div style="padding: 20px;">
+            <ItemCreate client:visible />
         </div>
 
 	</body>

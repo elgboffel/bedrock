@@ -2,7 +2,6 @@ import { it } from "@effect/vitest";
 import {
   AggregationTemporality,
   InMemoryMetricExporter,
-  MeterProvider,
   PeriodicExportingMetricReader,
 } from "@opentelemetry/sdk-metrics";
 import { ConfigProvider, Effect } from "effect";

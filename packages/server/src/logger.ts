@@ -27,6 +27,7 @@ import { LogConfig } from "./config.js";
 const createPino: {
   (opts?: pino.LoggerOptions): pino.Logger;
   (opts: pino.LoggerOptions, stream: pino.DestinationStream): pino.Logger;
+  // biome-ignore lint/suspicious/noExplicitAny: pino's dual CJS/ESM export requires a cast
 } = pino as any;
 
 /**

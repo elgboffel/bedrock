@@ -1,21 +1,13 @@
 import { it } from "@effect/vitest";
 import { DB, DrizzleLive } from "@repo/database/client";
 import { runMigrations } from "@repo/database/index";
-import { items } from "@repo/database/schema/index";
 import { FastifyLive, FastifyServer } from "@repo/server/fastify";
+import { RouteRunnerLive } from "@repo/server/route-runner";
 import { PostgreSqlContainer } from "@testcontainers/postgresql";
 import { ConfigProvider, Effect, Layer } from "effect";
 import { afterAll, beforeAll, describe, expect } from "vitest";
-import { registerDbRoutes } from "./db-routes.js";
-import { registerRoutes } from "./routes.js";
+import { registerHealthRoutes } from "./health.routes.js";
 
-/**
- * Integration tests for API routes that use the database.
- *
- * A real Postgres container is spun up via Testcontainers. The Layer
- * stack composes FastifyLive + DrizzleLive so routes can access
- * both the HTTP server and the Drizzle database client.
- */
 let container: Awaited<ReturnType<PostgreSqlContainer["start"]>>;
 
 beforeAll(async () => {
@@ -37,30 +29,23 @@ const containerConfig = () =>
     ]),
   );
 
-/**
- * Layer stack for integration tests: Fastify + Drizzle.
- * Merging gives the Effect context both FastifyServer and DB.
- */
-const TestLayers = Layer.merge(FastifyLive, DrizzleLive);
+const TestLayers = Layer.mergeAll(FastifyLive, DrizzleLive, RouteRunnerLive);
 
-describe("API database routes", () => {
-  it.effect("GET /db/health returns ok when database is reachable", () =>
+describe("Health routes", () => {
+  it.effect("GET / returns hello world response with common package data", () =>
     Effect.gen(function* () {
       const app = yield* FastifyServer;
-      const db = yield* DB;
-
-      yield* runMigrations(db);
-      yield* registerRoutes;
-      yield* registerDbRoutes;
+      yield* registerHealthRoutes;
 
       const response = yield* Effect.promise(() =>
-        app.inject({ method: "GET", url: "/db/health" }),
+        app.inject({ method: "GET", url: "/" }),
       );
 
       expect(response.statusCode).toBe(200);
       const body = response.json();
-      expect(body.status).toBe("ok");
-      expect(body).toHaveProperty("timestamp");
+      expect(body.hello).toBe("world 2");
+      expect(body.common).toBe("Hello from Common, API!");
+      expect(body.constant).toBe(42);
     }).pipe(
       Effect.provide(TestLayers),
       Effect.withConfigProvider(containerConfig()),
@@ -68,36 +53,22 @@ describe("API database routes", () => {
     ),
   );
 
-  it.effect("GET /db/items returns items from database after migration", () =>
+  it.effect("GET /health returns ok when database is reachable", () =>
     Effect.gen(function* () {
       const app = yield* FastifyServer;
       const db = yield* DB;
 
       yield* runMigrations(db);
-
-      // Seed test data via Drizzle typed API
-      yield* db
-        .insert(items)
-        .values([{ name: "Gravity Boots" }, { name: "Hover Board" }]);
-
-      yield* registerRoutes;
-      yield* registerDbRoutes;
+      yield* registerHealthRoutes;
 
       const response = yield* Effect.promise(() =>
-        app.inject({ method: "GET", url: "/db/items" }),
+        app.inject({ method: "GET", url: "/health" }),
       );
 
       expect(response.statusCode).toBe(200);
       const body = response.json();
-      expect(body).toHaveLength(2);
-      expect(body[0]).toHaveProperty("id");
-      expect(body[0]).toHaveProperty("name");
-      expect(body.map((i: { name: string }) => i.name)).toContain(
-        "Gravity Boots",
-      );
-      expect(body.map((i: { name: string }) => i.name)).toContain(
-        "Hover Board",
-      );
+      expect(body.status).toBe("ok");
+      expect(body).toHaveProperty("timestamp");
     }).pipe(
       Effect.provide(TestLayers),
       Effect.withConfigProvider(containerConfig()),

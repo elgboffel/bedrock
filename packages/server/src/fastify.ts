@@ -21,7 +21,7 @@
  */
 import { Context, Effect, Layer } from "effect";
 import Fastify, { type FastifyInstance } from "fastify";
-import { LogConfig, ServerConfig } from "./config.js";
+import { LogConfig } from "./config.js";
 
 /**
  * Tag for the Fastify instance.
@@ -48,7 +48,6 @@ export class FastifyServer extends Context.Tag("FastifyServer")<
 export const FastifyLive = Layer.scoped(
   FastifyServer,
   Effect.gen(function* () {
-    const serverConfig = yield* ServerConfig;
     const logConfig = yield* LogConfig;
 
     /**
