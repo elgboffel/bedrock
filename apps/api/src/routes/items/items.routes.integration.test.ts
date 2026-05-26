@@ -144,6 +144,54 @@ describe("Item routes", () => {
     ),
   );
 
+  it.effect("POST /items with empty body returns 400 with field details", () =>
+    Effect.gen(function* () {
+      const app = yield* FastifyServer;
+      const db = yield* DB;
+
+      yield* runMigrations(db);
+      yield* registerItemRoutes;
+
+      const response = yield* Effect.promise(() =>
+        app.inject({ method: "POST", url: "/items", payload: {} }),
+      );
+
+      expect(response.statusCode).toBe(400);
+      const body = response.json();
+      expect(body.error).toBe("ValidationError");
+      expect(body.details?.fields?.name).toBeDefined();
+      expect(body.details.fields.name.length).toBeGreaterThan(0);
+    }).pipe(
+      Effect.provide(TestLayers),
+      Effect.withConfigProvider(containerConfig()),
+      Effect.scoped,
+    ),
+  );
+
+  it.effect("GET /items/abc returns 400 with id field details", () =>
+    Effect.gen(function* () {
+      const app = yield* FastifyServer;
+      const db = yield* DB;
+
+      yield* runMigrations(db);
+      yield* registerItemRoutes;
+
+      const response = yield* Effect.promise(() =>
+        app.inject({ method: "GET", url: "/items/abc" }),
+      );
+
+      expect(response.statusCode).toBe(400);
+      const body = response.json();
+      expect(body.error).toBe("ValidationError");
+      expect(body.details?.fields).toBeDefined();
+      expect(Object.keys(body.details.fields)).toContain("id");
+    }).pipe(
+      Effect.provide(TestLayers),
+      Effect.withConfigProvider(containerConfig()),
+      Effect.scoped,
+    ),
+  );
+
   it.effect("POST /items with duplicate name returns 500", () =>
     Effect.gen(function* () {
       const app = yield* FastifyServer;

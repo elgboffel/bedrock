@@ -1,19 +1,7 @@
-import { Effect, ParseResult, Runtime, Schema } from "effect";
+import { Effect, Runtime, Schema } from "effect";
 import type { FastifyReply, FastifyRequest } from "fastify";
 import { mapErrorToHttp } from "./error-mapper.js";
-import { ValidationError } from "./errors.js";
-
-// --- ParseError -> ValidationError ---
-
-function parseErrorToValidation(
-  error: ParseResult.ParseError,
-  source: string,
-): ValidationError {
-  const message = ParseResult.TreeFormatter.formatErrorSync(error);
-  return new ValidationError({
-    message: `Validation failed on ${source}: ${message}`,
-  });
-}
+import { parseErrorToValidation } from "./parse-error-to-validation.js";
 
 // --- Effect-aware runner ---
 
@@ -61,9 +49,9 @@ export interface RouteSchemas {
 }
 
 type Decoded<S extends RouteSchemas> = {
-  body: S["body"] extends Schema.Schema<infer A, infer _E> ? A : unknown;
-  params: S["params"] extends Schema.Schema<infer A, infer _E> ? A : unknown;
-  query: S["query"] extends Schema.Schema<infer A, infer _E> ? A : unknown;
+  body: S["body"] extends Schema.Schema<infer A, infer _E> ? A : undefined;
+  params: S["params"] extends Schema.Schema<infer A, infer _E> ? A : undefined;
+  query: S["query"] extends Schema.Schema<infer A, infer _E> ? A : undefined;
 };
 
 type HandlerFn<T, S extends RouteSchemas> = (
@@ -88,19 +76,19 @@ function buildSchemaEffect<T, S extends RouteSchemas>(
       ? yield* Schema.decodeUnknown(schemas.body)(request.body).pipe(
           Effect.mapError((e) => parseErrorToValidation(e, "body")),
         )
-      : request.body;
+      : undefined;
 
     const params = schemas.params
       ? yield* Schema.decodeUnknown(schemas.params)(request.params).pipe(
           Effect.mapError((e) => parseErrorToValidation(e, "params")),
         )
-      : request.params;
+      : undefined;
 
     const query = schemas.query
       ? yield* Schema.decodeUnknown(schemas.query)(request.query).pipe(
           Effect.mapError((e) => parseErrorToValidation(e, "query")),
         )
-      : request.query;
+      : undefined;
 
     return yield* handler(request, { body, params, query } as Decoded<S>);
   });

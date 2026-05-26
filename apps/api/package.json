@@ -15,6 +15,7 @@
   },
   "dependencies": {
     "@repo/common": "workspace:*",
+    "@repo/contracts": "workspace:*",
     "@repo/database": "workspace:*",
     "@repo/server": "workspace:*",
     "@repo/telemetry": "workspace:*",

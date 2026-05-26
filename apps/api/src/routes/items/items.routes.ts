@@ -1,3 +1,4 @@
+import { CreateItem, ItemIdParams } from "@repo/contracts/items";
 import { DB } from "@repo/database/client";
 import { items } from "@repo/database/schema/index";
 import { NotFound } from "@repo/server/errors";
@@ -9,7 +10,7 @@ import { Effect } from "effect";
 export const registerItemRoutes = Effect.gen(function* () {
   const app = yield* FastifyServer;
   const db = yield* DB;
-  const { route } = yield* RouteRunner;
+  const { route, routeWithSchema } = yield* RouteRunner;
 
   app.get(
     "/items",
@@ -22,14 +23,14 @@ export const registerItemRoutes = Effect.gen(function* () {
 
   app.get(
     "/items/:id",
-    route((request) =>
+    routeWithSchema({ params: ItemIdParams }, (_request, { params }) =>
       Effect.gen(function* () {
-        const { id } = request.params as { id: string };
         const [item] = yield* db
           .select()
           .from(items)
-          .where(eq(items.id, Number(id)));
-        if (!item) return yield* new NotFound({ resource: `Item(${id})` });
+          .where(eq(items.id, params.id));
+        if (!item)
+          return yield* new NotFound({ resource: `Item(${params.id})` });
         return item;
       }).pipe(Effect.withSpan("GET /items/:id")),
     ),
@@ -37,9 +38,8 @@ export const registerItemRoutes = Effect.gen(function* () {
 
   app.post(
     "/items",
-    route((request) =>
+    routeWithSchema({ body: CreateItem }, (_request, { body }) =>
       Effect.gen(function* () {
-        const body = request.body as { name: string };
         const [created] = yield* db
           .insert(items)
           .values({ name: body.name })
