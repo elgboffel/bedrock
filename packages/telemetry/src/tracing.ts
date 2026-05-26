@@ -59,8 +59,8 @@ export const makeTracingLayer = (spanProcessor: SpanProcessor) =>
  *
  * Auto-configures from TelemetryConfig:
  * - Uses ConsoleSpanExporter (prints spans to stdout as JSON)
- * - When OTEL_EXPORTER_ENDPOINT is set, apps should use makeTracingLayer
- *   with an OTLPTraceExporter for real backends
+ * - When OTEL_EXPORTER_ENDPOINT is set, apps should use `OtlpTracingLive`
+ *   from `./otlp.js`, which switches to OTLP/HTTP automatically
  *
  * Compose into your app's Layer stack:
  *   const AppLive = Layer.merge(FastifyLive, TracingLive).pipe(...);

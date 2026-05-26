@@ -16,6 +16,10 @@
  *   });
  *
  *   const AppLive = Layer.merge(FastifyLive, TelemetryLive).pipe(...);
+ *
+ * For the common OTLP/HTTP case, see `./otlp.js` which provides
+ * `OtlpTracingLive`, `OtlpMetricsLive`, `OtlpLogExportLive` Layers
+ * pre-wired to TelemetryConfig.
  */
 import type { LogRecordProcessor } from "@opentelemetry/sdk-logs";
 import type { MetricReader } from "@opentelemetry/sdk-metrics";

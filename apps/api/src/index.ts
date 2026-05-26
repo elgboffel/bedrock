@@ -5,7 +5,8 @@
  * - FastifyLive: Fastify server lifecycle (create + close)
  * - DrizzleLive: Drizzle ORM database client (connection pool + typed queries)
  * - PinoLoggerLive: routes Effect.log calls to pino
- * - TracingLive: OpenTelemetry tracing
+ * - OtlpTracingLive: OpenTelemetry tracing (OTLP/HTTP when
+ *   OTEL_EXPORTER_ENDPOINT is set, console otherwise)
  *
  * NodeRuntime.runMain handles SIGINT/SIGTERM and process exit.
  */
@@ -16,7 +17,7 @@ import { ServerConfig } from "@repo/server/config";
 import { FastifyLive, FastifyServer } from "@repo/server/fastify";
 import { PinoLoggerLive } from "@repo/server/logger";
 import { RouteRunnerLive } from "@repo/server/route-runner";
-import { TracingLive } from "@repo/telemetry/tracing";
+import { OtlpTracingLive } from "@repo/telemetry/otlp";
 import { Effect, Layer } from "effect";
 import { registerRoutes } from "./routes/index.js";
 
@@ -56,13 +57,14 @@ const program = Effect.gen(function* () {
  *
  * - FastifyLive: Fastify server with acquireRelease lifecycle
  * - DrizzleLive: Drizzle ORM client (reads DbConfig from env)
- * - TracingLive: OpenTelemetry tracing (Effect.withSpan -> OTel spans)
+ * - OtlpTracingLive: OpenTelemetry tracing (OTLP/HTTP when
+ *   OTEL_EXPORTER_ENDPOINT is set, ConsoleSpanExporter otherwise)
  * - PinoLoggerLive: pino-backed Effect logger
  */
 const AppLive = Layer.mergeAll(
   FastifyLive,
   DrizzleLive,
-  TracingLive,
+  OtlpTracingLive,
   RouteRunnerLive,
 ).pipe(Layer.provide(PinoLoggerLive));
 
