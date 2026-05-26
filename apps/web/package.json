@@ -22,6 +22,7 @@
     "@fastify/http-proxy": "^11.4.1",
     "@fastify/static": "^8.0.0",
     "@repo/common": "workspace:*",
+    "@repo/contracts": "workspace:*",
     "@repo/server": "workspace:*",
     "@repo/telemetry": "workspace:*",
     "@repo/ui": "workspace:*",
@@ -35,11 +36,14 @@
   "devDependencies": {
     "@astrojs/check": "^0.9.6",
     "@effect/vitest": "^0.29.0",
+    "@testing-library/react": "^16.1.0",
+    "@testing-library/user-event": "^14.5.2",
     "@types/react": "^19.0.0",
+    "jsdom": "^25.0.1",
+    "msw": "^2.6.8",
     "@types/react-dom": "^19.0.0",
     "concurrently": "^9.2.1",
     "nodemon": "^3.1.14",
-    "pino-pretty": "^13.1.3",
     "tsdown": "^0.20.3",
     "vitest": "^3.2.4"
   }

@@ -9,7 +9,7 @@ const ApiCheckInner = () => {
   const { data, error } = useQuery({
     queryKey: ["api-check"],
     queryFn: async () => {
-      const res = await fetch("/api/db/items/1");
+      const res = await fetch("/api/items/1");
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       return res.json();
     },

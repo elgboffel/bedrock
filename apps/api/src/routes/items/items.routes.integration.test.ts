@@ -192,7 +192,7 @@ describe("Item routes", () => {
     ),
   );
 
-  it.effect("POST /items with duplicate name returns 500", () =>
+  it.effect("POST /items with duplicate name returns 409", () =>
     Effect.gen(function* () {
       const app = yield* FastifyServer;
       const db = yield* DB;
@@ -216,11 +216,11 @@ describe("Item routes", () => {
           payload: { name: "Unique Widget" },
         }),
       );
-      expect(second.statusCode).toBe(500);
-      expect(second.json()).toEqual({
-        error: "InternalError",
-        message: "An unexpected error occurred",
-      });
+      expect(second.statusCode).toBe(409);
+      const body = second.json();
+      expect(body.error).toBe("ConflictError");
+      expect(body.message).toBe("Item already exists");
+      expect(body.details?.detail).toContain("items_name_unique");
     }).pipe(
       Effect.provide(TestLayers),
       Effect.withConfigProvider(containerConfig()),
