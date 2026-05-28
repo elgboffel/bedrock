@@ -4,6 +4,16 @@ Effect-based server infrastructure: Fastify lifecycle, config, logging, route ad
 and a central HTTP error mapper. Designed so apps compose Layers and write route
 bodies as Effects, not async functions.
 
+## Layout
+
+This package follows the repo-wide **folder-per-module** convention: every module
+lives at `src/<name>/<name>.ts` with its paired test at `src/<name>/<name>.test.ts`.
+The `exports` map `"./*": "./src/*/*.ts"` makes the convention structurally
+unavoidable — `@repo/server/fastify` resolves to `src/fastify/fastify.ts` and a
+misplaced file simply fails to import. The layout-rule script (`@repo/layout-lint`)
+backs this up in `turbo check`. See `.scratch/folder-per-module-layout/PRD.md` and
+`CONTEXT-MAP.md` for the wider rationale.
+
 ## Vocabulary
 
 - **`FastifyServer`** — `Context.Tag` holding the `FastifyInstance`. Apps `yield*` it
@@ -55,6 +65,6 @@ bodies as Effects, not async functions.
 
 ## Add a new error type
 
-1. Add a `Data.TaggedError("NewThing")` class to `errors.ts`.
-2. Add a mapping entry in `error-mapper.ts` (`defaultMappings`).
+1. Add a `Data.TaggedError("NewThing")` class to `errors/errors.ts`.
+2. Add a mapping entry in `error-mapper/error-mapper.ts` (`defaultMappings`).
 3. Throw it from a route body via `yield* new NewThing({ ... })` or `Effect.fail`.

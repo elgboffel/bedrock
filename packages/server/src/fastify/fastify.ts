@@ -13,6 +13,11 @@
  * as a requirement in its type signature (the R parameter), and the
  * Layer system provides it automatically.
  *
+ * Logging note: Fastify's built-in pino logger is disabled. All logging
+ * goes through Effect's logger (currently the default console logger),
+ * so we have a single, consistent log pipeline. Request/response logs
+ * can be added later via a small Effect-based hook if needed.
+ *
  * Example:
  *   const myEffect = Effect.gen(function* () {
  *     const app = yield* FastifyServer;  // gets the Fastify instance
@@ -21,7 +26,6 @@
  */
 import { Context, Effect, Layer } from "effect";
 import Fastify, { type FastifyInstance } from "fastify";
-import { LogConfig } from "./config.js";
 
 /**
  * Tag for the Fastify instance.
@@ -38,8 +42,8 @@ export class FastifyServer extends Context.Tag("FastifyServer")<
 /**
  * Layer that manages the Fastify server lifecycle.
  *
- * - acquire: creates a Fastify instance with pino logging configured
- *   from LogConfig, but does NOT call listen() -- that's the app's job.
+ * - acquire: creates a Fastify instance with logging disabled. Does NOT
+ *   call listen() -- that's the app's job.
  * - release: calls fastify.close() to gracefully shut down.
  *
  * This is a "scoped" Layer, meaning the release runs when the
@@ -47,39 +51,17 @@ export class FastifyServer extends Context.Tag("FastifyServer")<
  */
 export const FastifyLive = Layer.scoped(
   FastifyServer,
-  Effect.gen(function* () {
-    const logConfig = yield* LogConfig;
-
-    /**
-     * Effect.acquireRelease takes two functions:
-     * - acquire: runs once to create the resource
-     * - release: runs once when the scope closes (cleanup)
-     *
-     * This replaces the manual try/catch + process.on("SIGINT") pattern.
-     */
-    const app = yield* Effect.acquireRelease(
-      // Acquire: create the Fastify instance
-      Effect.sync(() =>
-        Fastify({
-          logger: {
-            level: logConfig.logLevel,
-            ...(logConfig.prettyPrint
-              ? { transport: { target: "pino-pretty" } }
-              : {}),
-          },
-        }),
+  Effect.acquireRelease(
+    // Acquire: create the Fastify instance with logging disabled.
+    Effect.sync(() => Fastify({ logger: false })),
+    // Release: close the Fastify instance gracefully.
+    // Note: wrapping with async/await ensures a real Promise, since some
+    // Fastify methods return PromiseLike with one-shot .then() behavior.
+    (app) =>
+      Effect.promise(async () => {
+        await app.close();
+      }).pipe(
+        Effect.tap(() => Effect.logInfo("Fastify server closed gracefully")),
       ),
-      // Release: close the Fastify instance gracefully.
-      // Note: wrapping with async/await ensures a real Promise, since some
-      // Fastify methods return PromiseLike with one-shot .then() behavior.
-      (app) =>
-        Effect.promise(async () => {
-          await app.close();
-        }).pipe(
-          Effect.tap(() => Effect.logInfo("Fastify server closed gracefully")),
-        ),
-    );
-
-    return app;
-  }),
+  ),
 );

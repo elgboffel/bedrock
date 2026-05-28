@@ -1,7 +1,7 @@
 import { Either, type ParseResult, Schema } from "effect";
 import { describe, expect, test } from "vitest";
-import { ValidationError } from "./errors.js";
-import { parseErrorToValidation } from "./parse-error-to-validation.js";
+import { ValidationError } from "../errors/errors";
+import { parseErrorToValidation } from "./parse-error-to-validation";
 
 function decodeError<A, I>(
   schema: Schema.Schema<A, I>,

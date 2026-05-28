@@ -1,7 +1,7 @@
 import { it } from "@effect/vitest";
 import { ConfigProvider, Effect } from "effect";
 import { expect } from "vitest";
-import { FastifyLive, FastifyServer } from "./fastify.js";
+import { FastifyLive, FastifyServer } from "./fastify";
 
 const testConfigProvider = ConfigProvider.fromMap(new Map());
 

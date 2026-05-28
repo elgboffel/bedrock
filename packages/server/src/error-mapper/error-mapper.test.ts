@@ -1,12 +1,12 @@
 import { describe, expect, test } from "vitest";
-import { createErrorMapper, mapErrorToHttp } from "./error-mapper.js";
 import {
   ConflictError,
   InternalError,
   NotFound,
   Unauthorized,
   ValidationError,
-} from "./errors.js";
+} from "../errors/errors";
+import { createErrorMapper, mapErrorToHttp } from "./error-mapper";
 
 describe("mapErrorToHttp", () => {
   test("NotFound maps to 404 with resource info", () => {

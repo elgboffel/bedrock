@@ -31,14 +31,9 @@ export const ServerConfig = Effect.all({
  * LogConfig provides logging configuration.
  *
  * - LOG_LEVEL: log level string (default: "info")
- * - LOG_PRETTY: enable pretty-printing (default: false)
- *
- * In production, you'll typically leave prettyPrint false for structured
- * JSON output. In development, set LOG_PRETTY=true for human-readable logs.
  */
 export const LogConfig = Effect.all({
   logLevel: Config.string("LOG_LEVEL").pipe(Config.withDefault("info")),
-  prettyPrint: Config.boolean("LOG_PRETTY").pipe(Config.withDefault(false)),
 });
 
 /**

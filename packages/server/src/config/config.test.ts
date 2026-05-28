@@ -1,7 +1,7 @@
 import { it } from "@effect/vitest";
 import { ConfigProvider, Effect } from "effect";
 import { expect } from "vitest";
-import { ApiConfig, LogConfig, ServerConfig } from "./config.js";
+import { ApiConfig, LogConfig, ServerConfig } from "./config";
 
 it.effect(
   "ServerConfig loads default port 3000 and host 0.0.0.0 when no env vars set",
@@ -35,29 +35,20 @@ it.effect(
     ),
 );
 
-it.effect(
-  "LogConfig loads default logLevel 'info' and prettyPrint false when no env vars set",
-  () =>
-    Effect.gen(function* () {
-      const config = yield* LogConfig;
-      expect(config.logLevel).toBe("info");
-      expect(config.prettyPrint).toBe(false);
-    }).pipe(Effect.withConfigProvider(ConfigProvider.fromMap(new Map()))),
+it.effect("LogConfig loads default logLevel 'info' when no env vars set", () =>
+  Effect.gen(function* () {
+    const config = yield* LogConfig;
+    expect(config.logLevel).toBe("info");
+  }).pipe(Effect.withConfigProvider(ConfigProvider.fromMap(new Map()))),
 );
 
-it.effect("LogConfig reads LOG_LEVEL and LOG_PRETTY from environment", () =>
+it.effect("LogConfig reads LOG_LEVEL from environment", () =>
   Effect.gen(function* () {
     const config = yield* LogConfig;
     expect(config.logLevel).toBe("debug");
-    expect(config.prettyPrint).toBe(true);
   }).pipe(
     Effect.withConfigProvider(
-      ConfigProvider.fromMap(
-        new Map([
-          ["LOG_LEVEL", "debug"],
-          ["LOG_PRETTY", "true"],
-        ]),
-      ),
+      ConfigProvider.fromMap(new Map([["LOG_LEVEL", "debug"]])),
     ),
   ),
 );

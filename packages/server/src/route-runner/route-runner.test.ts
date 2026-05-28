@@ -1,9 +1,9 @@
 import { it } from "@effect/vitest";
 import { ConfigProvider, Effect, Logger } from "effect";
 import { describe, expect } from "vitest";
-import { NotFound, Unauthorized } from "./errors.js";
-import { FastifyLive, FastifyServer } from "./fastify.js";
-import { RouteRunner, RouteRunnerLive } from "./route-runner.js";
+import { NotFound, Unauthorized } from "../errors/errors";
+import { FastifyLive, FastifyServer } from "../fastify/fastify";
+import { RouteRunner, RouteRunnerLive } from "./route-runner";
 
 function makeTestLogger() {
   const entries: Array<{ level: string; message: string }> = [];

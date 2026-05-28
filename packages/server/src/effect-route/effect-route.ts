@@ -1,7 +1,7 @@
 import { Effect, Runtime, Schema } from "effect";
 import type { FastifyReply, FastifyRequest } from "fastify";
-import { mapErrorToHttp } from "./error-mapper.js";
-import { parseErrorToValidation } from "./parse-error-to-validation.js";
+import { mapErrorToHttp } from "../error-mapper/error-mapper";
+import { parseErrorToValidation } from "../parse-error-to-validation/parse-error-to-validation";
 
 // --- Effect-aware runner ---
 
@@ -98,7 +98,7 @@ function buildSchemaEffect<T, S extends RouteSchemas>(
 
 /**
  * Creates route helpers that use the provided Runtime for execution.
- * This enables logging via PinoLoggerLive and tracing via TracingLive,
+ * This enables logging via LoggerLive and tracing via TracingLive,
  * since the runtime carries the fiber refs (including the logger) from the
  * scope where it was captured.
  *

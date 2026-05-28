@@ -5,7 +5,7 @@
  * Empty-paths failures (e.g. wrong root type) use `source` as the single key.
  */
 import { ParseResult } from "effect";
-import { ValidationError } from "./errors.js";
+import { ValidationError } from "../errors/errors";
 
 /** Source slot the schema decoded against — used as a fallback `fields` key. */
 export type ValidationSource = "body" | "params" | "query";
