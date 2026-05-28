@@ -48,4 +48,14 @@ else
   done
 fi
 
+# 5. Check dev ports free (3000 web, 3001 api)
+for PORT in 3000 3001; do
+  PID=$(lsof -tiTCP:$PORT -sTCP:LISTEN 2>/dev/null || true)
+  if [ -n "$PID" ]; then
+    warn "Port $PORT in use by PID $PID (likely orphan from previous dev run)"
+    ps -p "$PID" -o pid,ppid,command || true
+    fail "Free it with: kill $PID  (or kill -9 $PID)"
+  fi
+done
+
 info "Postgres is healthy — ready to dev"
