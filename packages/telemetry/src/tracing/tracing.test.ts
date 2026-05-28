@@ -5,7 +5,7 @@ import {
 } from "@opentelemetry/sdk-trace-base";
 import { ConfigProvider, Effect } from "effect";
 import { expect } from "vitest";
-import { makeTracingLayer } from "./tracing.js";
+import { makeTracingLayer } from "./tracing";
 
 /**
  * Helper: creates a tracing layer backed by an in-memory span exporter.

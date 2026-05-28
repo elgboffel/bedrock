@@ -42,10 +42,10 @@ import {
   SimpleSpanProcessor,
 } from "@opentelemetry/sdk-trace-base";
 import { Effect, Layer } from "effect";
-import { TelemetryConfig } from "./config.js";
-import { makeLogExportLayer } from "./log-export.js";
-import { makeMetricsLayer } from "./metrics.js";
-import { makeTracingLayer } from "./tracing.js";
+import { TelemetryConfig } from "../config/config";
+import { makeLogExportLayer } from "../log-export/log-export";
+import { makeMetricsLayer } from "../metrics/metrics";
+import { makeTracingLayer } from "../tracing/tracing";
 
 /**
  * Options for the OTLP exporter factories.

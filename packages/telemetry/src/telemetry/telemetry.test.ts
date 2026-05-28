@@ -14,8 +14,8 @@ import {
 } from "@opentelemetry/sdk-trace-base";
 import { ConfigProvider, Effect } from "effect";
 import { expect } from "vitest";
-import { Metrics } from "./metrics.js";
-import { makeTelemetryLayer } from "./telemetry.js";
+import { Metrics } from "../metrics/metrics";
+import { makeTelemetryLayer } from "./telemetry";
 
 const makeTestTelemetry = () => {
   const spanExporter = new InMemorySpanExporter();

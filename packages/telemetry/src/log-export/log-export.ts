@@ -4,7 +4,7 @@ import {
 } from "@effect/opentelemetry";
 import type { LogRecordProcessor } from "@opentelemetry/sdk-logs";
 import { Effect, Layer } from "effect";
-import { TelemetryConfig } from "./config.js";
+import { TelemetryConfig } from "../config/config";
 
 /**
  * Creates a Log Export Layer that bridges Effect's Logger to OTel.
@@ -14,7 +14,7 @@ import { TelemetryConfig } from "./config.js";
  * alongside traces and metrics in the observability backend.
  *
  * This uses `Logger.layerLoggerAdd` which ADDS the OTel logger alongside
- * existing loggers (like pino). It does NOT replace them.
+ * the existing Effect logger(s). It does NOT replace them.
  *
  * The LogRecordProcessor determines where logs go:
  * - In tests: InMemoryLogRecordExporter + SimpleLogRecordProcessor

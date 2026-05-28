@@ -11,7 +11,7 @@ import {
   OtlpLogExportLive,
   OtlpMetricsLive,
   OtlpTracingLive,
-} from "./otlp.js";
+} from "./otlp";
 
 it("makeOtlpTraceExporter appends /v1/traces to the endpoint", () => {
   const exporter = makeOtlpTraceExporter({ endpoint: "http://localhost:4318" });

@@ -4,12 +4,13 @@
   "private": true,
   "type": "module",
   "exports": {
-    "./*": "./src/*.ts"
+    "./*": "./src/*/*.ts"
   },
   "scripts": {
     "lint": "biome lint .",
     "typecheck": "tsc --noEmit",
     "format": "biome format .",
+    "check": "layout-lint .",
     "test": "vitest run"
   },
   "dependencies": {
@@ -28,6 +29,7 @@
     "@opentelemetry/exporter-logs-otlp-http": ">=0.203.0 <0.300.0"
   },
   "devDependencies": {
+    "@repo/layout-lint": "workspace:*",
     "@repo/typescript-config": "workspace:*",
     "@effect/vitest": "^0.29.0",
     "vitest": "^3.2.4"

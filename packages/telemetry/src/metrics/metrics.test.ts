@@ -6,7 +6,7 @@ import {
 } from "@opentelemetry/sdk-metrics";
 import { ConfigProvider, Effect } from "effect";
 import { expect } from "vitest";
-import { Metrics, makeMetricsLayer } from "./metrics.js";
+import { Metrics, makeMetricsLayer } from "./metrics";
 
 /**
  * Helper: creates a metrics layer backed by in-memory exporter.

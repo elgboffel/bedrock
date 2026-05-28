@@ -23,7 +23,7 @@ import {
   type SpanProcessor,
 } from "@opentelemetry/sdk-trace-base";
 import { Effect, Layer } from "effect";
-import { TelemetryConfig } from "./config.js";
+import { TelemetryConfig } from "../config/config";
 
 /**
  * Creates a Tracing Layer with a custom SpanProcessor.

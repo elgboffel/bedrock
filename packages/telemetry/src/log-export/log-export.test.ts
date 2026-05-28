@@ -5,7 +5,7 @@ import {
 } from "@opentelemetry/sdk-logs";
 import { ConfigProvider, Effect } from "effect";
 import { expect } from "vitest";
-import { makeLogExportLayer } from "./log-export.js";
+import { makeLogExportLayer } from "./log-export";
 
 /**
  * Helper: creates a log export layer backed by an in-memory exporter.

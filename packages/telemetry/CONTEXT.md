@@ -6,6 +6,12 @@ OTLP/HTTP via the helpers in `otlp.ts`.
 
 ## Vocabulary
 
+- **Folder-per-module layout** — each non-test module lives at
+  `src/<name>/<name>.ts` with its paired test at `src/<name>/<name>.test.ts`. No
+  `index.ts` aggregators. Consumers import via the subpath `@repo/telemetry/<name>`,
+  which the `exports` wildcard (`./*` → `./src/*/*.ts`) resolves to the module file.
+
+
 - **`TelemetryConfig`** — single config bundle. `OTEL_SERVICE_NAME` (required),
   `OTEL_EXPORTER_ENDPOINT` (optional base URL), `OTEL_SAMPLING_RATE` (0–1,
   default 1.0), `OTEL_ENABLED` (default true). When `OTEL_ENABLED=false`, all three

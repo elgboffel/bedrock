@@ -25,7 +25,7 @@ import { resourceFromAttributes } from "@opentelemetry/resources";
 import { MeterProvider, type MetricReader } from "@opentelemetry/sdk-metrics";
 import { ATTR_SERVICE_NAME } from "@opentelemetry/semantic-conventions";
 import { Context, Effect, Layer } from "effect";
-import { TelemetryConfig } from "./config.js";
+import { TelemetryConfig } from "../config/config";
 
 /**
  * The MetricsService interface provides methods to record custom

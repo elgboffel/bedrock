@@ -25,9 +25,9 @@ import type { LogRecordProcessor } from "@opentelemetry/sdk-logs";
 import type { MetricReader } from "@opentelemetry/sdk-metrics";
 import type { SpanProcessor } from "@opentelemetry/sdk-trace-base";
 import { Layer } from "effect";
-import { makeLogExportLayer } from "./log-export.js";
-import { makeMetricsLayer } from "./metrics.js";
-import { makeTracingLayer } from "./tracing.js";
+import { makeLogExportLayer } from "../log-export/log-export";
+import { makeMetricsLayer } from "../metrics/metrics";
+import { makeTracingLayer } from "../tracing/tracing";
 
 /**
  * Options for the combined Telemetry Layer.

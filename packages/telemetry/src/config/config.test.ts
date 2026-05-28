@@ -1,7 +1,7 @@
 import { it } from "@effect/vitest";
 import { ConfigProvider, Effect } from "effect";
 import { expect } from "vitest";
-import { TelemetryConfig } from "./config.js";
+import { TelemetryConfig } from "./config";
 
 it.effect(
   "TelemetryConfig loads defaults: samplingRate 1.0, enabled true when only serviceName set",
