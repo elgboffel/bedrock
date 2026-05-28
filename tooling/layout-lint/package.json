@@ -1,0 +1,21 @@
+{
+  "name": "@repo/layout-lint",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "bin": {
+    "layout-lint": "./src/cli/cli.ts"
+  },
+  "scripts": {
+    "check": "node src/cli/cli.ts .",
+    "test": "vitest run",
+    "lint": "biome lint .",
+    "typecheck": "tsc --noEmit",
+    "format": "biome format ."
+  },
+  "devDependencies": {
+    "@repo/typescript-config": "workspace:*",
+    "@types/node": "^22.10.0",
+    "vitest": "^3.2.4"
+  }
+}
