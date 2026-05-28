@@ -23,7 +23,7 @@ import { migrate } from "drizzle-orm/effect-postgres/migrator";
 import { Effect } from "effect";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
-const defaultMigrationsFolder = path.resolve(__dirname, "../drizzle");
+const defaultMigrationsFolder = path.resolve(__dirname, "../../drizzle");
 
 /**
  * Run all pending Drizzle migrations.

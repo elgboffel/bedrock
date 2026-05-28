@@ -4,12 +4,13 @@
   "private": true,
   "type": "module",
   "exports": {
-    "./*": "./src/*.ts"
+    "./*": "./src/*/*.ts"
   },
   "scripts": {
     "lint": "biome lint .",
     "typecheck": "tsc --noEmit",
     "format": "biome format .",
+    "check": "layout-lint .",
     "test": "vitest run",
     "test:integration": "vitest run --config vitest.integration.config.ts",
     "db:generate": "drizzle-kit generate",
@@ -26,6 +27,7 @@
   },
   "devDependencies": {
     "@effect/vitest": "^0.29.0",
+    "@repo/layout-lint": "workspace:*",
     "@repo/typescript-config": "workspace:*",
     "@testcontainers/postgresql": "^11.14.0",
     "@types/pg": "^8.20.0",

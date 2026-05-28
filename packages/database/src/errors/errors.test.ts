@@ -1,7 +1,7 @@
 import { SqlError } from "@effect/sql";
 import { Cause } from "effect";
 import { describe, expect, test } from "vitest";
-import { isUniqueViolation } from "./errors.js";
+import { isUniqueViolation } from "./errors";
 
 describe("isUniqueViolation", () => {
   test("returns constraint name for pg unique violation (code 23505) wrapped in SqlError", () => {

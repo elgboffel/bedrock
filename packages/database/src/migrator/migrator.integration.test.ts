@@ -3,9 +3,9 @@ import { PostgreSqlContainer } from "@testcontainers/postgresql";
 import { eq } from "drizzle-orm";
 import { ConfigProvider, Effect } from "effect";
 import { afterAll, beforeAll, describe, expect } from "vitest";
-import { DB, DrizzleLive } from "./client.js";
-import { runMigrations } from "./migrator.js";
-import { items } from "./schema/index.js";
+import { DB, DrizzleLive } from "../client/client";
+import { items } from "../schema/schema";
+import { runMigrations } from "./migrator";
 
 /**
  * Integration tests for Drizzle migrations and typed queries.

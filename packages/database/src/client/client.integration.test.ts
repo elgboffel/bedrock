@@ -3,7 +3,7 @@ import { PostgreSqlContainer } from "@testcontainers/postgresql";
 import { sql } from "drizzle-orm";
 import { ConfigProvider, Effect } from "effect";
 import { afterAll, beforeAll, describe, expect } from "vitest";
-import { DB, DrizzleLive } from "./client.js";
+import { DB, DrizzleLive } from "./client";
 
 /**
  * Integration tests for the Drizzle + Effect Layer.

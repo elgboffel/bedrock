@@ -22,8 +22,8 @@ import { PgClient } from "@effect/sql-pg";
 import * as PgDrizzle from "drizzle-orm/effect-postgres";
 import { Context, Effect, Layer, Redacted } from "effect";
 import { types } from "pg";
-import { DbConfig } from "./config.js";
-import * as schema from "./schema/index.js";
+import { DbConfig } from "../config/config";
+import { schema } from "../schema/schema";
 
 /** The Drizzle database instance type. */
 type DrizzleDatabase = Effect.Effect.Success<

@@ -1,7 +1,7 @@
 import { it } from "@effect/vitest";
 import { Cause, ConfigProvider, Effect, Exit } from "effect";
 import { describe, expect } from "vitest";
-import { DbConfig } from "./config.js";
+import { DbConfig } from "./config";
 
 describe("DbConfig", () => {
   it.effect(

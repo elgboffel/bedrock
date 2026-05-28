@@ -5,6 +5,15 @@ code, not from a separate CLI step. Tests use Testcontainers for real Postgres.
 
 ## Vocabulary
 
+- **Folder-per-module layout** — each non-test module lives at
+  `src/<name>/<name>.ts` with its paired test alongside. Tables live one level
+  deeper at `src/schema/<table>/<table>.ts`. No `index.ts` barrels anywhere.
+  Consumers import via the subpath `@repo/database/<name>`, which the `exports`
+  wildcard (`./*` → `./src/*/*.ts`) resolves to the module file.
+- **Aggregator module** — named replacement for a barrel. `src/schema/schema.ts`
+  imports each table module by name and re-exports them as a typed `schema` record
+  passed to Drizzle's `makeWithDefaults`. Adding a new table means importing it
+  in `schema.ts` and listing it in the object — explicit, not glob-driven.
 - **`DB`** — `Context.Tag` holding a Drizzle database instance. Route bodies and
   services `yield* DB` and then call `db.select() / .insert() / .update()` as normal
   Drizzle, returning Effects.
@@ -12,8 +21,10 @@ code, not from a separate CLI step. Tests use Testcontainers for real Postgres.
   `PgClient` from `@effect/sql-pg`, wraps it with `drizzle-orm/effect-postgres`.
 - **`DbConfig`** — `Effect.all` config bundle (`DB_HOST`, `DB_PORT`, `DB_NAME`,
   `DB_USER`, `DB_PASSWORD`). Password is `Redacted` so it never leaks to logs.
-- **Schema modules** (`src/schema/*.ts`) — Drizzle `pgTable` definitions. Re-export
-  from `src/schema/index.ts`. Apps import `from "@repo/database/schema/index"`.
+- **Schema modules** (`src/schema/<table>/<table>.ts`) — Drizzle `pgTable`
+  definitions, one table per folder. The `schema` aggregator at
+  `src/schema/schema.ts` collects them; apps import
+  `from "@repo/database/schema"`.
 - **`isUniqueViolation(err)`** — sniffs Postgres SQLSTATE `23505` through the
   `cause` / `failure` / `error` chain. Works whether the error comes from raw pg,
   `@effect/sql` `SqlError`, or Drizzle/effect-postgres. Returns
@@ -23,9 +34,10 @@ code, not from a separate CLI step. Tests use Testcontainers for real Postgres.
 
 ## Conventions
 
-- **Table files are flat.** One table per file in `src/schema/`. Unique indexes are
-  declared in the table's third-arg callback (`(table) => [uniqueIndex(...)]`), not
-  via separate `ALTER TABLE` migrations.
+- **One table per folder.** Each table lives at `src/schema/<table>/<table>.ts`
+  and is registered in `src/schema/schema.ts`. Unique indexes are declared in the
+  table's third-arg callback (`(table) => [uniqueIndex(...)]`), not via separate
+  `ALTER TABLE` migrations.
 - **Migrations are generated, not handwritten.** Drizzle Kit produces them from the
   schema files; humans review and commit. `drizzle.config.ts` reads from `DB_*` env
   vars and will throw with a clear message if any are unset.
@@ -43,6 +55,6 @@ code, not from a separate CLI step. Tests use Testcontainers for real Postgres.
 ## Testcontainers pattern
 
 Integration tests boot a real Postgres container, run migrations, and provide an
-ad-hoc `DrizzleLive` wired to it. See `client.integration.test.ts` and
-`migration.integration.test.ts`. Apps reuse this pattern from their own
+ad-hoc `DrizzleLive` wired to it. See `client/client.integration.test.ts` and
+`migrator/migrator.integration.test.ts`. Apps reuse this pattern from their own
 `vitest.integration.config.ts`.
