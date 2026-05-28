@@ -4,7 +4,6 @@
  * Uses Effect to compose server infrastructure:
  * - FastifyLive: Fastify server lifecycle (create + close)
  * - DrizzleLive: Drizzle ORM database client (connection pool + typed queries)
- * - PinoLoggerLive: routes Effect.log calls to pino
  * - OtlpTracingLive: OpenTelemetry tracing (OTLP/HTTP when
  *   OTEL_EXPORTER_ENDPOINT is set, console otherwise)
  *
@@ -15,11 +14,11 @@ import { NodeRuntime } from "@effect/platform-node";
 import { DrizzleLive } from "@repo/database/client";
 import { ServerConfig } from "@repo/server/config";
 import { FastifyLive, FastifyServer } from "@repo/server/fastify";
-import { PinoLoggerLive } from "@repo/server/logger";
+import { LoggerLive } from "@repo/server/logger";
 import { RouteRunnerLive } from "@repo/server/route-runner";
 import { OtlpTracingLive } from "@repo/telemetry/otlp";
 import { Effect, Layer } from "effect";
-import { registerRoutes } from "./routes/index.js";
+import { registerRoutes } from "./routes/routes";
 
 /**
  * The main application Effect.
@@ -59,14 +58,13 @@ const program = Effect.gen(function* () {
  * - DrizzleLive: Drizzle ORM client (reads DbConfig from env)
  * - OtlpTracingLive: OpenTelemetry tracing (OTLP/HTTP when
  *   OTEL_EXPORTER_ENDPOINT is set, ConsoleSpanExporter otherwise)
- * - PinoLoggerLive: pino-backed Effect logger
  */
 const AppLive = Layer.mergeAll(
   FastifyLive,
   DrizzleLive,
   OtlpTracingLive,
   RouteRunnerLive,
-).pipe(Layer.provide(PinoLoggerLive));
+);
 
 /**
  * Run the program.
@@ -75,4 +73,17 @@ const AppLive = Layer.mergeAll(
  * released when the program ends. NodeRuntime.runMain handles signals
  * and process exit.
  */
-program.pipe(Effect.provide(AppLive), Effect.scoped, NodeRuntime.runMain);
+// LoggerLive is provided directly to the program (not merged into AppLive)
+// so the FiberRef-based logger replacement applies to the program's fiber.
+//
+// `disablePrettyLogger: true` stops NodeRuntime from auto-swapping the
+// default logger for `Logger.prettyLoggerDefault` at startup. Without
+// this, our `Logger.replace(defaultLogger, ...)` inside LoggerLive becomes
+// a no-op remove + add, leaving both loggers active and producing
+// duplicate output.
+program.pipe(
+  Effect.provide(AppLive),
+  Effect.provide(LoggerLive),
+  Effect.scoped,
+  (effect) => NodeRuntime.runMain(effect, { disablePrettyLogger: true }),
+);

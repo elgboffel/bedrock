@@ -10,6 +10,7 @@
     "lint": "biome lint .",
     "typecheck": "tsc --noEmit",
     "format": "biome format .",
+    "check": "layout-lint .",
     "test": "vitest run",
     "test:integration": "vitest run --config vitest.integration.config.ts"
   },
@@ -24,6 +25,7 @@
     "drizzle-orm": "1.0.0-beta.22"
   },
   "devDependencies": {
+    "@repo/layout-lint": "workspace:*",
     "@repo/typescript-config": "workspace:*",
     "@effect/vitest": "^0.29.0",
     "@testcontainers/postgresql": "^11.14.0",

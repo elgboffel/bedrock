@@ -1,7 +1,7 @@
 import { CreateItem, ItemIdParams } from "@repo/contracts/items";
 import { DB } from "@repo/database/client";
 import { isUniqueViolation } from "@repo/database/errors";
-import { items } from "@repo/database/schema/index";
+import { items } from "@repo/database/schema";
 import { ConflictError, NotFound } from "@repo/server/errors";
 import { FastifyServer } from "@repo/server/fastify";
 import { RouteRunner } from "@repo/server/route-runner";

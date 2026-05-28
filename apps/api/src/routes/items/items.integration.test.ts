@@ -1,13 +1,13 @@
 import { it } from "@effect/vitest";
 import { DB, DrizzleLive } from "@repo/database/client";
-import { runMigrations } from "@repo/database/index";
-import { items } from "@repo/database/schema/index";
+import { runMigrations } from "@repo/database/migrator";
+import { items } from "@repo/database/schema";
 import { FastifyLive, FastifyServer } from "@repo/server/fastify";
 import { RouteRunnerLive } from "@repo/server/route-runner";
 import { PostgreSqlContainer } from "@testcontainers/postgresql";
 import { ConfigProvider, Effect, Layer } from "effect";
 import { afterAll, beforeAll, describe, expect } from "vitest";
-import { registerItemRoutes } from "./items.routes.js";
+import { registerItemRoutes } from "./items";
 
 let container: Awaited<ReturnType<PostgreSqlContainer["start"]>>;
 

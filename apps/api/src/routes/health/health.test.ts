@@ -1,12 +1,12 @@
 import { it } from "@effect/vitest";
 import { DB, DrizzleLive } from "@repo/database/client";
-import { runMigrations } from "@repo/database/index";
+import { runMigrations } from "@repo/database/migrator";
 import { FastifyLive, FastifyServer } from "@repo/server/fastify";
 import { RouteRunnerLive } from "@repo/server/route-runner";
 import { PostgreSqlContainer } from "@testcontainers/postgresql";
 import { ConfigProvider, Effect, Layer } from "effect";
 import { afterAll, beforeAll, describe, expect } from "vitest";
-import { registerHealthRoutes } from "./health.routes.js";
+import { registerHealthRoutes } from "./health";
 
 let container: Awaited<ReturnType<PostgreSqlContainer["start"]>>;
 
