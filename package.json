@@ -11,6 +11,7 @@
     "lint:deps": "syncpack list-mismatches",
     "typecheck": "turbo typecheck",
     "test": "turbo test",
+    "check": "biome check . && turbo typecheck check",
     "format": "biome format .",
     "prepare": "husky"
   },
