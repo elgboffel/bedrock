@@ -5,7 +5,6 @@
  * to compose all the server infrastructure:
  *
  * - FastifyLive: manages the Fastify server lifecycle (create + close)
- * - PinoLoggerLive: routes Effect.log calls to pino
  * - ServerConfig / LogConfig / ApiConfig: validated environment configuration
  * - registerPlugins: registers proxy, static, and SSR middleware
  * - registerRoutes: registers the health endpoint and other routes
@@ -31,13 +30,13 @@ import fastifyProxy from "@fastify/http-proxy";
 import fastifyStatic from "@fastify/static";
 import { ServerConfig } from "@repo/server/config";
 import { FastifyLive, FastifyServer } from "@repo/server/fastify";
-import { PinoLoggerLive } from "@repo/server/logger";
+import { LoggerLive } from "@repo/server/logger";
 import { RouteRunnerLive } from "@repo/server/route-runner";
 import { TracingLive } from "@repo/telemetry/tracing";
 import { Effect, Layer } from "effect";
-import { AstroDevLive } from "./astro-dev.js";
-import { registerPlugins } from "./plugins.js";
-import { registerRoutes } from "./routes.js";
+import { AstroDevLive } from "./astro-dev/astro-dev";
+import { registerPlugins } from "./plugins/plugins";
+import { registerRoutes } from "./routes/routes";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const isProduction = process.env.NODE_ENV === "production";
@@ -130,16 +129,11 @@ const program = Effect.gen(function* () {
  * Layer composition:
  * - FastifyLive: Fastify server with acquireRelease lifecycle
  * - TracingLive: OpenTelemetry tracing (Effect.withSpan -> OTel spans)
- * - PinoLoggerLive: pino-backed Effect logger
  * - NodeContext.layer: provides CommandExecutor for child processes
  *
  * Set OTEL_SERVICE_NAME=web in environment for proper span attribution.
  */
-const BaseLayers = Layer.mergeAll(
-  FastifyLive,
-  TracingLive,
-  RouteRunnerLive,
-).pipe(Layer.provide(PinoLoggerLive));
+const BaseLayers = Layer.mergeAll(FastifyLive, TracingLive, RouteRunnerLive);
 
 const AppLive = isProduction
   ? BaseLayers
@@ -154,4 +148,17 @@ const AppLive = isProduction
  * processes) are released when the program ends. NodeRuntime.runMain
  * handles signals and process exit — no manual process.on or process.exit.
  */
-program.pipe(Effect.provide(AppLive), Effect.scoped, NodeRuntime.runMain);
+// LoggerLive is provided directly to the program (not merged into AppLive)
+// so the FiberRef-based logger replacement applies to the program's fiber.
+//
+// `disablePrettyLogger: true` stops NodeRuntime from auto-swapping the
+// default logger for `Logger.prettyLoggerDefault` at startup. Without
+// this, our `Logger.replace(defaultLogger, ...)` inside LoggerLive becomes
+// a no-op remove + add, leaving both loggers active and producing
+// duplicate output.
+program.pipe(
+  Effect.provide(AppLive),
+  Effect.provide(LoggerLive),
+  Effect.scoped,
+  (effect) => NodeRuntime.runMain(effect, { disablePrettyLogger: true }),
+);

@@ -2,7 +2,7 @@ import { NodeContext } from "@effect/platform-node";
 import { it } from "@effect/vitest";
 import { Effect, Ref } from "effect";
 import { describe, expect } from "vitest";
-import { AstroDevProcess, makeAstroDevLayer } from "./astro-dev.js";
+import { AstroDevProcess, makeAstroDevLayer } from "./astro-dev";
 
 describe("Astro dev Command Layer", () => {
   it.effect("spawns a child process and cleans it up on scope release", () =>

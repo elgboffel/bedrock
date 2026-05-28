@@ -4,8 +4,8 @@ import { FastifyLive, FastifyServer } from "@repo/server/fastify";
 import { RouteRunnerLive } from "@repo/server/route-runner";
 import { ConfigProvider, Effect, Layer } from "effect";
 import { describe, expect } from "vitest";
-import { registerPlugins } from "./plugins.js";
-import { registerRoutes } from "./routes.js";
+import { registerPlugins } from "./plugins/plugins";
+import { registerRoutes } from "./routes/routes";
 
 /**
  * Test ConfigProvider — overrides API_URL to a port that's guaranteed

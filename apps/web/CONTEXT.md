@@ -6,14 +6,25 @@ dev) spawns the Astro dev server as a managed subprocess.
 
 ## Layout
 
+Follows the repo-wide **folder-per-module** convention. Inside `src/server/`,
+every module sits at `<name>/<name>.ts` with its paired test alongside. The
+entrypoint (`server/index.ts` + `server/index.test.ts`) is the layout-rule
+exception — a folder that contains both `index.ts` and `index.test.ts`
+counts as an **entrypoint folder** and escapes the no-`index.ts` rule.
+See `.scratch/folder-per-module-layout/PRD.md`.
+
 ```
 src/
 ├── server/                       ← Fastify front-door (Node)
 │   ├── index.ts                  ← entrypoint: AppLive + program
-│   ├── plugins.ts                ← proxy / static / SSR middleware
-│   ├── routes.ts                 ← health + any non-Astro routes
-│   ├── astro-dev.ts              ← AstroDevLive: dev-mode subprocess Layer
-│   └── *.test.ts
+│   ├── index.test.ts             ← bootstrap test (alongside entrypoint)
+│   ├── plugins/
+│   │   └── plugins.ts            ← proxy / static / SSR middleware
+│   ├── routes/
+│   │   └── routes.ts             ← health + any non-Astro routes
+│   └── astro-dev/
+│       ├── astro-dev.ts          ← AstroDevLive: dev-mode subprocess Layer
+│       └── astro-dev.test.ts
 └── browser/                      ← Astro + React
     ├── pages/                    ← .astro pages (SSR)
     └── components/               ← React islands (.tsx)
@@ -38,7 +49,7 @@ Layer.mergeAll(FastifyLive, TracingLive, RouteRunnerLive)
 ```
 
 `ApiConfig` (`API_URL`, default `http://localhost:3001`) feeds the proxy upstream
-in `plugins.ts`.
+in `plugins/plugins.ts`.
 
 ## Shared types
 
