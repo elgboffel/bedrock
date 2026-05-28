@@ -22,10 +22,19 @@ format lives here so both sides agree by construction.
   must be unique". Uniqueness is a DB concern (`ConflictError`).
 - **No internal helpers.** If a helper is only used by `apps/api`, put it there.
 
+## Layout
+
+Follows the repo-wide **folder-per-module** convention: each domain lives at
+`src/<name>/<name>.ts` (e.g. `src/items/items.ts`). Consumers import via
+`@repo/contracts/items`, which the `"./*": "./src/*/*.ts"` exports map resolves
+to `src/items/items.ts`. Misplaced files fail to import. See
+`.scratch/folder-per-module-layout/PRD.md`.
+
 ## Conventions
 
-- One file per domain (`items.ts`, future `users.ts`, etc.). Each exports
-  `<Entity>`, `Create<Entity>`, `<Entity>IdParams`, and so on as needed.
+- One folder per domain (`items/`, future `users/`, etc.). Each domain's
+  `<name>.ts` exports `<Entity>`, `Create<Entity>`, `<Entity>IdParams`, and so on
+  as needed.
 - Export both the schema (`export const Foo = ...`) and the type
   (`export type Foo = typeof Foo.Type`) so consumers don't have to compute the type.
 - Use the strictest base schema possible — `Schema.NonEmptyString` over

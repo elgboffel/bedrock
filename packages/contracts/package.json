@@ -4,17 +4,19 @@
   "private": true,
   "type": "module",
   "exports": {
-    "./*": "./src/*.ts"
+    "./*": "./src/*/*.ts"
   },
   "scripts": {
     "lint": "biome lint .",
     "typecheck": "tsc --noEmit",
-    "format": "biome format ."
+    "format": "biome format .",
+    "check": "layout-lint ."
   },
   "dependencies": {
     "effect": "^3.21.2"
   },
   "devDependencies": {
+    "@repo/layout-lint": "workspace:*",
     "@repo/typescript-config": "workspace:*"
   }
 }
