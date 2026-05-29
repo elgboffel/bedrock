@@ -12,7 +12,7 @@ should read as "the canonical way", not "one option among many".
 
 | Path | One-liner |
 | --- | --- |
-| [`packages/server/CONTEXT.md`](packages/server/CONTEXT.md) | Effect Layers for Fastify, Pino, config, RouteRunner; tagged errors + central HTTP mapper. |
+| [`packages/server/CONTEXT.md`](packages/server/CONTEXT.md) | Effect Layers for Fastify, Pino, config, RouteRunner; tagged errors + central HTTP mapper; internal-auth, internal-proxy-headers, internal-client for the web→backend boundary. |
 | [`packages/database/CONTEXT.md`](packages/database/CONTEXT.md) | Drizzle + `@effect/sql-pg` Layer, schema conventions, unique-violation sniffing, testcontainers. |
 | [`packages/contracts/CONTEXT.md`](packages/contracts/CONTEXT.md) | HTTP DTOs as Effect Schemas — shared between API and web. No runtime, no DB types. |
 | [`packages/telemetry/CONTEXT.md`](packages/telemetry/CONTEXT.md) | Tracing / metrics / log-export Layers; OTLP factories; `TelemetryConfig` envelope. |
@@ -30,5 +30,9 @@ glossarising. If they grow, add a `CONTEXT.md` here.
 
 ## Cross-cutting decisions
 
-System-wide ADRs would live in `docs/adr/` (not created yet). Context-scoped ADRs
-would live in `<context>/docs/adr/`. Create lazily when a real decision needs recording.
+System-wide ADRs live in `docs/adr/`. Context-scoped ADRs live in
+`<context>/docs/adr/`. Create lazily when a real decision needs recording.
+
+| ADR | Summary |
+| --- | --- |
+| [`docs/adr/001-internal-web-api-boundary.md`](docs/adr/001-internal-web-api-boundary.md) | Layered web→backend boundary: L1 network (SG ingress), L2 per-backend token, L4 proxy header denylist, L5 typed server-to-server client. L3/mTLS deferred. Identity = web-as-boundary. Includes zero-downtime token rotation runbook. |

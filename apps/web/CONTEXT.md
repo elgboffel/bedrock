@@ -51,6 +51,25 @@ Layer.mergeAll(FastifyLive, TracingLive, RouteRunnerLive)
 `ApiConfig` (`API_URL`, default `http://localhost:3001`) feeds the proxy upstream
 in `plugins/plugins.ts`.
 
+## Internal boundary (web→api proxy)
+
+The `/api/*` proxy is the security boundary between the public internet and
+private backends. See [ADR-001](../../docs/adr/001-internal-web-api-boundary.md).
+
+- **Header rewriting** — `plugins.ts` uses `rewriteProxyHeaders`
+  (`@repo/server/internal-proxy-headers`) in `@fastify/http-proxy`'s
+  `rewriteRequestHeaders`. This strips `x-internal-*` / `x-user-*` namespaces
+  (prevents browser forgery), drops `cookie` / `authorization` (web-as-boundary),
+  re-authors `x-forwarded-*`, and injects `x-internal-auth`.
+- **Token injection** — the proxy reads `InternalAuthConfig` and injects the
+  shared secret automatically. The browser never holds the token.
+- **SSR / server-to-server** — SSR code calls api directly via `InternalClient`
+  (`@repo/server/internal-client`), bypassing the proxy. The client injects
+  `x-internal-auth` and decodes responses against `@repo/contracts` Schemas.
+  It is **server-only** (Node/crypto deps prevent browser import).
+- **Browser path** — React islands `fetch('/api/...')` through the proxy. They
+  never use `InternalClient`.
+
 ## Shared types
 
 - **Request/response shapes** come from `@repo/contracts`. Components type their
@@ -65,7 +84,8 @@ in `plugins/plugins.ts`.
   Query. Each interactive component is its own island; don't try to share a
   React tree across Astro pages.
 - **Fetch through the proxy.** Components hit `/api/...` (same origin), not the
-  API directly. The Fastify proxy handles upstream routing.
+  API directly. The Fastify proxy handles upstream routing, header rewriting,
+  and token injection. Never import `InternalClient` in a React island.
 
 ## Fastify quirk: `register()` returns a one-shot PromiseLike
 

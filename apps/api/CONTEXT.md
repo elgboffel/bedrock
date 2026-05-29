@@ -34,14 +34,21 @@ See `.scratch/folder-per-module-layout/PRD.md` for the wider rationale.
 
 ```ts
 const AppLive = Layer.mergeAll(
-  FastifyLive,
   DrizzleLive,
   OtlpTracingLive,
   RouteRunnerLive,
-).pipe(Layer.provide(PinoLoggerLive));
+  InternalAuthLive,
+).pipe(Layer.provideMerge(FastifyLive));
 ```
 
-- **`PinoLoggerLive`** is provided last so it's available to everything above.
+- **`InternalAuthLive`** — registers a Fastify `onRequest` hook that rejects
+  requests without a valid `x-internal-auth` token (bare `401`). `/health`
+  bypasses. Fail-closed: missing `INTERNAL_AUTH_TOKEN` aborts boot. See
+  [ADR-001](../../docs/adr/001-internal-web-api-boundary.md) for the full
+  boundary design.
+- **`PinoLoggerLive`** is provided via `LoggerLive` directly to the program (not
+  merged into `AppLive`) so the FiberRef-based logger replacement applies to the
+  program's fiber.
 - **`RouteRunnerLive`** must come after the logger + tracer so the captured runtime
   carries those fiber refs.
 - **`OtlpTracingLive`** auto-switches between OTLP/HTTP and console based on
@@ -81,6 +88,41 @@ const AppLive = Layer.mergeAll(
   vitest stubs) and call routes via `app.inject(...)`.
 - **Integration (`*.integration.test.ts`)**: Testcontainers Postgres, real
   `DrizzleLive`, real Fastify. Run via `pnpm test:integration`.
+
+## Expose a new private backend
+
+When a second backend (e.g. `apps/billing`) is needed:
+
+1. **SST factory.** Add a `PrivateBackend` call in `sst.config.ts`:
+   ```ts
+   const billing = PrivateBackend("billing", {
+     port: 3002,
+     allowedCallers: [web],   // source-SG ingress
+   });
+   ```
+   This creates: Fargate Service (no ALB), Cloud Map private DNS,
+   `sst.Secret` for the backend's auth token, `link` wiring to callers,
+   and source-SG ingress rules.
+
+2. **`InternalAuthLive` in the Layer stack.** The new backend's `index.ts`
+   adds `InternalAuthLive` to its `AppLive` exactly like `apps/api` does.
+   The `internal-auth` Layer reads `InternalAuthConfig` from env
+   (`INTERNAL_AUTH_TOKEN`), which SST populates via `link`.
+
+3. **Routes.** Create route modules under `src/routes/` following the same
+   folder-per-module pattern as `apps/api`.
+
+4. **Callers.** Web SSR or other backends call the new backend via
+   `InternalClient` (`@repo/server/internal-client`), which reads the
+   target's URL + token from config and injects `x-internal-auth`.
+
+5. **`allowedCallers` controls who can connect.** Only the Security Groups
+   of declared callers are granted ingress to the backend's port. No
+   VPC-wide fallback — a compromised service elsewhere can't reach it.
+
+No security-critical wiring is hand-copied. The `PrivateBackend` factory
+encodes the entire pattern. See [ADR-001](../../docs/adr/001-internal-web-api-boundary.md)
+for rationale and the rotation runbook.
 
 ## Gotchas
 
