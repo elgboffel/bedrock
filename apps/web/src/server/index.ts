@@ -96,6 +96,7 @@ const program = Effect.gen(function* () {
         upstream: "http://localhost:4321",
         prefix: "/",
         http2: false,
+        websocket: true,
       }),
     );
   }
