@@ -3,6 +3,7 @@ import { DB, DrizzleLive } from "@repo/database/client";
 import { runMigrations } from "@repo/database/migrator";
 import { items } from "@repo/database/schema";
 import { FastifyLive, FastifyServer } from "@repo/server/fastify";
+import { InternalAuthLive, withInternalAuth } from "@repo/server/internal-auth";
 import { RouteRunnerLive } from "@repo/server/route-runner";
 import { PostgreSqlContainer } from "@testcontainers/postgresql";
 import { ConfigProvider, Effect, Layer } from "effect";
@@ -19,6 +20,8 @@ afterAll(async () => {
   await container?.stop();
 });
 
+const TEST_TOKEN = "test-integration-token";
+
 const containerConfig = () =>
   ConfigProvider.fromMap(
     new Map([
@@ -27,10 +30,15 @@ const containerConfig = () =>
       ["DB_NAME", container.getDatabase()],
       ["DB_USER", container.getUsername()],
       ["DB_PASSWORD", container.getPassword()],
+      ["INTERNAL_AUTH_TOKEN", TEST_TOKEN],
     ]),
   );
 
-const TestLayers = Layer.mergeAll(FastifyLive, DrizzleLive, RouteRunnerLive);
+const TestLayers = Layer.mergeAll(
+  DrizzleLive,
+  RouteRunnerLive,
+  InternalAuthLive,
+).pipe(Layer.provideMerge(FastifyLive));
 
 describe("Item routes", () => {
   it.effect("GET /items returns items from database", () =>
@@ -45,7 +53,11 @@ describe("Item routes", () => {
       yield* registerItemRoutes;
 
       const response = yield* Effect.promise(() =>
-        app.inject({ method: "GET", url: "/items" }),
+        app.inject({
+          method: "GET",
+          url: "/items",
+          headers: withInternalAuth(TEST_TOKEN),
+        }),
       );
 
       expect(response.statusCode).toBe(200);
@@ -79,7 +91,11 @@ describe("Item routes", () => {
       yield* registerItemRoutes;
 
       const response = yield* Effect.promise(() =>
-        app.inject({ method: "GET", url: `/items/${inserted.id}` }),
+        app.inject({
+          method: "GET",
+          url: `/items/${inserted.id}`,
+          headers: withInternalAuth(TEST_TOKEN),
+        }),
       );
 
       expect(response.statusCode).toBe(200);
@@ -103,7 +119,11 @@ describe("Item routes", () => {
       yield* registerItemRoutes;
 
       const response = yield* Effect.promise(() =>
-        app.inject({ method: "GET", url: "/items/999" }),
+        app.inject({
+          method: "GET",
+          url: "/items/999",
+          headers: withInternalAuth(TEST_TOKEN),
+        }),
       );
 
       expect(response.statusCode).toBe(404);
@@ -131,6 +151,7 @@ describe("Item routes", () => {
           method: "POST",
           url: "/items",
           payload: { name: "New Widget" },
+          headers: withInternalAuth(TEST_TOKEN),
         }),
       );
 
@@ -153,7 +174,12 @@ describe("Item routes", () => {
       yield* registerItemRoutes;
 
       const response = yield* Effect.promise(() =>
-        app.inject({ method: "POST", url: "/items", payload: {} }),
+        app.inject({
+          method: "POST",
+          url: "/items",
+          payload: {},
+          headers: withInternalAuth(TEST_TOKEN),
+        }),
       );
 
       expect(response.statusCode).toBe(400);
@@ -177,7 +203,11 @@ describe("Item routes", () => {
       yield* registerItemRoutes;
 
       const response = yield* Effect.promise(() =>
-        app.inject({ method: "GET", url: "/items/abc" }),
+        app.inject({
+          method: "GET",
+          url: "/items/abc",
+          headers: withInternalAuth(TEST_TOKEN),
+        }),
       );
 
       expect(response.statusCode).toBe(400);
@@ -205,6 +235,7 @@ describe("Item routes", () => {
           method: "POST",
           url: "/items",
           payload: { name: "Unique Widget" },
+          headers: withInternalAuth(TEST_TOKEN),
         }),
       );
       expect(first.statusCode).toBe(200);
@@ -214,6 +245,7 @@ describe("Item routes", () => {
           method: "POST",
           url: "/items",
           payload: { name: "Unique Widget" },
+          headers: withInternalAuth(TEST_TOKEN),
         }),
       );
       expect(second.statusCode).toBe(409);

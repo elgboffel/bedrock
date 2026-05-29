@@ -1,7 +1,12 @@
 import { it } from "@effect/vitest";
-import { ConfigProvider, Effect } from "effect";
+import { ConfigProvider, Effect, Option } from "effect";
 import { expect } from "vitest";
-import { ApiConfig, LogConfig, ServerConfig } from "./config";
+import {
+  ApiConfig,
+  InternalAuthConfig,
+  LogConfig,
+  ServerConfig,
+} from "./config";
 
 it.effect(
   "ServerConfig loads default port 3000 and host 0.0.0.0 when no env vars set",
@@ -71,4 +76,47 @@ it.effect("ApiConfig reads API_URL from environment", () =>
       ConfigProvider.fromMap(new Map([["API_URL", "https://api.example.com"]])),
     ),
   ),
+);
+
+it.effect(
+  "InternalAuthConfig reads token, previous token, and header from env",
+  () =>
+    Effect.gen(function* () {
+      const config = yield* InternalAuthConfig;
+      expect(config.token).toBe("my-secret");
+      expect(Option.getOrNull(config.previousToken)).toBe("old-secret");
+      expect(config.headerName).toBe("x-custom-auth");
+    }).pipe(
+      Effect.withConfigProvider(
+        ConfigProvider.fromMap(
+          new Map([
+            ["INTERNAL_AUTH_TOKEN", "my-secret"],
+            ["INTERNAL_AUTH_PREVIOUS_TOKEN", "old-secret"],
+            ["INTERNAL_AUTH_HEADER", "x-custom-auth"],
+          ]),
+        ),
+      ),
+    ),
+);
+
+it.effect(
+  "InternalAuthConfig uses default header and no previous token when not set",
+  () =>
+    Effect.gen(function* () {
+      const config = yield* InternalAuthConfig;
+      expect(config.token).toBe("tok");
+      expect(Option.isNone(config.previousToken)).toBe(true);
+      expect(config.headerName).toBe("x-internal-auth");
+    }).pipe(
+      Effect.withConfigProvider(
+        ConfigProvider.fromMap(new Map([["INTERNAL_AUTH_TOKEN", "tok"]])),
+      ),
+    ),
+);
+
+it.effect("InternalAuthConfig fails when INTERNAL_AUTH_TOKEN is missing", () =>
+  Effect.gen(function* () {
+    const exit = yield* InternalAuthConfig.pipe(Effect.exit);
+    expect(exit._tag).toBe("Failure");
+  }).pipe(Effect.withConfigProvider(ConfigProvider.fromMap(new Map()))),
 );

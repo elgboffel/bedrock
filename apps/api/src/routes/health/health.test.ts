@@ -2,6 +2,7 @@ import { it } from "@effect/vitest";
 import { DB, DrizzleLive } from "@repo/database/client";
 import { runMigrations } from "@repo/database/migrator";
 import { FastifyLive, FastifyServer } from "@repo/server/fastify";
+import { InternalAuthLive, withInternalAuth } from "@repo/server/internal-auth";
 import { RouteRunnerLive } from "@repo/server/route-runner";
 import { PostgreSqlContainer } from "@testcontainers/postgresql";
 import { ConfigProvider, Effect, Layer } from "effect";
@@ -18,6 +19,8 @@ afterAll(async () => {
   await container?.stop();
 });
 
+const TEST_TOKEN = "test-health-token";
+
 const containerConfig = () =>
   ConfigProvider.fromMap(
     new Map([
@@ -26,10 +29,15 @@ const containerConfig = () =>
       ["DB_NAME", container.getDatabase()],
       ["DB_USER", container.getUsername()],
       ["DB_PASSWORD", container.getPassword()],
+      ["INTERNAL_AUTH_TOKEN", TEST_TOKEN],
     ]),
   );
 
-const TestLayers = Layer.mergeAll(FastifyLive, DrizzleLive, RouteRunnerLive);
+const TestLayers = Layer.mergeAll(
+  DrizzleLive,
+  RouteRunnerLive,
+  InternalAuthLive,
+).pipe(Layer.provideMerge(FastifyLive));
 
 describe("Health routes", () => {
   it.effect("GET / returns hello world response with common package data", () =>
@@ -38,7 +46,11 @@ describe("Health routes", () => {
       yield* registerHealthRoutes;
 
       const response = yield* Effect.promise(() =>
-        app.inject({ method: "GET", url: "/" }),
+        app.inject({
+          method: "GET",
+          url: "/",
+          headers: withInternalAuth(TEST_TOKEN),
+        }),
       );
 
       expect(response.statusCode).toBe(200);

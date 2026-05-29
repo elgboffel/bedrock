@@ -14,6 +14,7 @@ import { NodeRuntime } from "@effect/platform-node";
 import { DrizzleLive } from "@repo/database/client";
 import { ServerConfig } from "@repo/server/config";
 import { FastifyLive, FastifyServer } from "@repo/server/fastify";
+import { InternalAuthLive } from "@repo/server/internal-auth";
 import { LoggerLive } from "@repo/server/logger";
 import { RouteRunnerLive } from "@repo/server/route-runner";
 import { OtlpTracingLive } from "@repo/telemetry/otlp";
@@ -60,11 +61,11 @@ const program = Effect.gen(function* () {
  *   OTEL_EXPORTER_ENDPOINT is set, ConsoleSpanExporter otherwise)
  */
 const AppLive = Layer.mergeAll(
-  FastifyLive,
   DrizzleLive,
   OtlpTracingLive,
   RouteRunnerLive,
-);
+  InternalAuthLive,
+).pipe(Layer.provideMerge(FastifyLive));
 
 /**
  * Run the program.

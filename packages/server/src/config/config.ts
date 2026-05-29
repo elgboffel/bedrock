@@ -9,7 +9,7 @@
  * configuration object. Configs can be composed -- an app only pulls in
  * the config pieces it needs.
  */
-import { Config, Effect } from "effect";
+import { Config, Effect, Option } from "effect";
 
 /**
  * ServerConfig provides the basic server binding settings.
@@ -47,5 +47,20 @@ export const LogConfig = Effect.all({
 export const ApiConfig = Effect.all({
   apiUrl: Config.string("API_URL").pipe(
     Config.withDefault("http://localhost:3001"),
+  ),
+});
+
+/**
+ * InternalAuthConfig provides internal service-to-service auth settings.
+ *
+ * - INTERNAL_AUTH_TOKEN: shared secret token (required — fail-closed)
+ * - INTERNAL_AUTH_PREVIOUS_TOKEN: previous token for zero-downtime rotation (optional)
+ * - INTERNAL_AUTH_HEADER: header name carrying the token (default: "x-internal-auth")
+ */
+export const InternalAuthConfig = Effect.all({
+  token: Config.string("INTERNAL_AUTH_TOKEN"),
+  previousToken: Config.option(Config.string("INTERNAL_AUTH_PREVIOUS_TOKEN")),
+  headerName: Config.string("INTERNAL_AUTH_HEADER").pipe(
+    Config.withDefault("x-internal-auth"),
   ),
 });
