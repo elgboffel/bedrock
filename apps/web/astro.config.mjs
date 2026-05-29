@@ -11,13 +11,8 @@ export default defineConfig({
   }),
   integrations: [react()],
   vite: {
-    server: {
-      proxy: {
-        "/api": {
-          target: "http://localhost:3001",
-          rewrite: (path) => path.replace(/^\/api/, ""),
-        },
-      },
+    optimizeDeps: {
+      exclude: ["msw", "msw/node"],
     },
   },
 });

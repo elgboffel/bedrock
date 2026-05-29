@@ -16,7 +16,20 @@
 
 import { Command, type CommandExecutor } from "@effect/platform";
 import type { Process } from "@effect/platform/CommandExecutor";
-import { Context, Effect, Layer } from "effect";
+import { NodeContext } from "@effect/platform-node";
+import { Config, Context, Effect, Layer, Schedule } from "effect";
+
+/**
+ * AstroDevConfig provides the Astro dev server port.
+ *
+ * - ASTRO_DEV_PORT: port the Astro/Vite dev server listens on (default: 4321)
+ *
+ * Used by the AstroDevLive Layer (to spawn `astro dev --port` and poll for
+ * readiness) and by the dev proxy in index.ts (upstream URL).
+ */
+export const AstroDevConfig = Effect.all({
+  port: Config.integer("ASTRO_DEV_PORT").pipe(Config.withDefault(4321)),
+});
 
 /**
  * Tag for the Astro dev child process.
@@ -30,10 +43,42 @@ export class AstroDevProcess extends Context.Tag("AstroDevProcess")<
 >() {}
 
 /**
+ * Poll a URL until it responds (any status). Used to wait for the Astro
+ * dev server to be ready before Fastify starts accepting requests.
+ */
+const waitForReady = (
+  url: string,
+  opts?: { maxRetries?: number; intervalMs?: number },
+) => {
+  const maxRetries = opts?.maxRetries ?? 60;
+  const intervalMs = opts?.intervalMs ?? 500;
+
+  return Effect.tryPromise({
+    try: () => fetch(url).then(() => undefined),
+    catch: () => "not ready" as const,
+  }).pipe(
+    Effect.filterOrFail(
+      () => true,
+      () => "not ready" as const,
+    ),
+    Effect.retry(
+      Schedule.recurs(maxRetries).pipe(
+        Schedule.addDelay(() => `${intervalMs} millis`),
+      ),
+    ),
+    Effect.catchAll(() =>
+      Effect.die(
+        new Error(`Dev server at ${url} did not become ready in time`),
+      ),
+    ),
+  );
+};
+
+/**
  * Create a Layer that spawns a child process and kills it on release.
  *
- * In production, use `makeAstroDevLayer("pnpm", "astro", "dev")`.
- * In tests, use a simple command like `makeAstroDevLayer("sleep", "60")`.
+ * Generic version without readiness polling — useful for tests where a
+ * simple command like `sleep 60` stands in for the real dev server.
  *
  * @param command - The executable to run
  * @param args - Arguments to pass to the executable
@@ -57,8 +102,6 @@ export const makeAstroDevLayer = (
 
       return process;
     }).pipe(
-      // Catch process errors and convert them to defects so the Layer
-      // construction doesn't require PlatformError in its error channel.
       Effect.catchAll((error) =>
         Effect.die(new Error(`Failed to start dev process: ${String(error)}`)),
       ),
@@ -68,8 +111,41 @@ export const makeAstroDevLayer = (
 /**
  * The production Astro dev Layer.
  *
- * Spawns `pnpm astro dev` which starts the Astro dev server on port 4321.
+ * Reads ASTRO_DEV_PORT from env (default 4321), spawns `pnpm astro dev
+ * --port <port>`, and waits for the dev server to accept connections
+ * before the Layer is considered ready — prevents the Fastify proxy from
+ * returning 500s on early requests.
+ *
  * The process is automatically killed when the Effect scope closes
  * (e.g., on SIGINT/SIGTERM handled by NodeRuntime.runMain).
  */
-export const AstroDevLive = makeAstroDevLayer("pnpm", "astro", "dev");
+export const AstroDevLive = Layer.scoped(
+  AstroDevProcess,
+  Effect.gen(function* () {
+    const { port } = yield* AstroDevConfig;
+
+    yield* Effect.logInfo(
+      `Starting dev process: pnpm astro dev --port ${port}`,
+    );
+
+    const process = yield* Command.make(
+      "pnpm",
+      "astro",
+      "dev",
+      "--port",
+      String(port),
+    ).pipe(Command.start);
+
+    yield* Effect.logInfo(`Dev process started with PID ${process.pid}`);
+
+    yield* Effect.logInfo(`Waiting for Astro dev server on port ${port}...`);
+    yield* waitForReady(`http://localhost:${port}`);
+    yield* Effect.logInfo("Astro dev server is ready");
+
+    return process;
+  }).pipe(
+    Effect.catchAll((error) =>
+      Effect.die(new Error(`Failed to start dev process: ${String(error)}`)),
+    ),
+  ),
+).pipe(Layer.provide(NodeContext.layer));

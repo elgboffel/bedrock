@@ -24,7 +24,7 @@
 
 import path from "node:path";
 import { fileURLToPath } from "node:url";
-import { NodeContext, NodeRuntime } from "@effect/platform-node";
+import { NodeRuntime } from "@effect/platform-node";
 import fastifyExpress from "@fastify/express";
 import fastifyProxy from "@fastify/http-proxy";
 import fastifyStatic from "@fastify/static";
@@ -33,8 +33,8 @@ import { FastifyLive, FastifyServer } from "@repo/server/fastify";
 import { LoggerLive } from "@repo/server/logger";
 import { RouteRunnerLive } from "@repo/server/route-runner";
 import { TracingLive } from "@repo/telemetry/tracing";
-import { Effect, Layer } from "effect";
-import { AstroDevLive } from "./astro-dev/astro-dev";
+import { Config, Effect, Layer } from "effect";
+import { AstroDevConfig, AstroDevLive } from "./astro-dev/astro-dev";
 import { registerPlugins } from "./plugins/plugins";
 import { registerRoutes } from "./routes/routes";
 
@@ -88,12 +88,14 @@ const program = Effect.gen(function* () {
       }),
     );
   } else {
-    // Development: proxy all non-API requests to the Astro dev server
-    // running on port 4321. The Astro dev process itself is managed by
-    // the AstroDevLive Layer (started automatically, killed on shutdown).
+    // Development: proxy all non-API requests to the Astro dev server.
+    // The port comes from ASTRO_DEV_PORT (default 4321). The Astro dev
+    // process itself is managed by AstroDevLive (started automatically,
+    // killed on shutdown).
+    const { port: astroPort } = yield* AstroDevConfig;
     yield* fastifyOp(() =>
       app.register(fastifyProxy, {
-        upstream: "http://localhost:4321",
+        upstream: `http://localhost:${astroPort}`,
         prefix: "/",
         http2: false,
         websocket: true,
@@ -130,7 +132,6 @@ const program = Effect.gen(function* () {
  * Layer composition:
  * - FastifyLive: Fastify server with acquireRelease lifecycle
  * - TracingLive: OpenTelemetry tracing (Effect.withSpan -> OTel spans)
- * - NodeContext.layer: provides CommandExecutor for child processes
  *
  * Set OTEL_SERVICE_NAME=web in environment for proper span attribution.
  */
@@ -138,9 +139,7 @@ const BaseLayers = Layer.mergeAll(FastifyLive, TracingLive, RouteRunnerLive);
 
 const AppLive = isProduction
   ? BaseLayers
-  : Layer.merge(BaseLayers, AstroDevLive).pipe(
-      Layer.provide(NodeContext.layer),
-    );
+  : Layer.merge(BaseLayers, AstroDevLive);
 
 /**
  * Run the program.
