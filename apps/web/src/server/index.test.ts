@@ -16,6 +16,7 @@ const testConfigProvider = ConfigProvider.fromMap(
   new Map([
     ["OTEL_SERVICE_NAME", "web-test"],
     ["API_URL", "http://127.0.0.1:1"],
+    ["INTERNAL_AUTH_TOKEN", "test-secret-token"],
   ]),
 );
 

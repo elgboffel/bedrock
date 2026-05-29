@@ -11,25 +11,28 @@
  */
 
 import fastifyProxy from "@fastify/http-proxy";
-import { ApiConfig } from "@repo/server/config";
+import { ApiConfig, InternalAuthConfig } from "@repo/server/config";
 import { FastifyServer } from "@repo/server/fastify";
+import { rewriteProxyHeaders } from "@repo/server/internal-proxy-headers";
 import { Effect } from "effect";
 
-/**
- * Register all Fastify plugins (proxy, static, SSR middleware).
- *
- * This is an Effect so it can:
- * 1. Access FastifyServer from context
- * 2. Read ApiConfig for the upstream API URL
- * 3. Be composed with other setup Effects
- */
+/** Max request body size through the proxy (10 MB). */
+const PROXY_BODY_LIMIT = 10 * 1024 * 1024;
+
+/** Upstream timeout in milliseconds (30 seconds). */
+const PROXY_TIMEOUT_MS = 30_000;
+
 export const registerPlugins = Effect.gen(function* () {
   const app = yield* FastifyServer;
   const apiConfig = yield* ApiConfig;
+  const authConfig = yield* InternalAuthConfig;
 
   // Proxy /api/* requests to the API server.
   // The upstream URL comes from ApiConfig (env: API_URL, default: http://localhost:3001).
   // Requests like GET /api/items become GET /items on the upstream.
+  //
+  // Security: rewriteRequestHeaders strips forged internal/identity/credential
+  // headers and injects the internal auth token. See internal-proxy-headers.
   //
   // Note: Fastify's .register() returns a PromiseLike with a one-shot .then().
   // We wrap with async/await to produce a real Promise that Effect.promise
@@ -40,6 +43,25 @@ export const registerPlugins = Effect.gen(function* () {
       prefix: "/api",
       rewritePrefix: "/",
       http2: false,
+      websocket: false,
+      httpMethods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS", "HEAD"],
+      replyOptions: {
+        rewriteRequestHeaders: (_req, headers) =>
+          rewriteProxyHeaders(headers, {
+            token: authConfig.token,
+            headerName: authConfig.headerName,
+            remoteAddress: _req.ip,
+            protocol: _req.protocol,
+          }),
+        timeout: PROXY_TIMEOUT_MS,
+      },
     });
+  });
+
+  // Body size limit for proxied requests
+  app.addHook("onRoute", (routeOptions) => {
+    if (routeOptions.url.startsWith("/api")) {
+      routeOptions.bodyLimit = PROXY_BODY_LIMIT;
+    }
   });
 });
