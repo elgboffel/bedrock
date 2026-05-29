@@ -13,7 +13,7 @@ function requireEnv(name: string): string {
 
 export default defineConfig({
   dialect: "postgresql",
-  schema: "./src/schema/index.ts",
+  schema: "./src/schema/schema.ts",
   out: "./drizzle",
   strict: true,
   verbose: true,
