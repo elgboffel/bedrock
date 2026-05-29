@@ -10,3 +10,4 @@ build
 .env
 .zed/
 
+.playwright-cli/
