@@ -23,6 +23,9 @@ export default defineConfig({
     database: requireEnv("DB_NAME"),
     user: requireEnv("DB_USER"),
     password: requireEnv("DB_PASSWORD"),
-    ssl: false,
+    ssl:
+      (process.env.DB_SSL ?? "true") === "true"
+        ? { rejectUnauthorized: false }
+        : false,
   },
 });

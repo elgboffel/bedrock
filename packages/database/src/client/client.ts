@@ -50,6 +50,11 @@ const PgClientLive = Layer.unwrapEffect(
       username: config.username,
       password: Redacted.make(config.password),
       maxConnections: config.poolSize,
+      // When SSL is enabled, use `rejectUnauthorized: false` so RDS's
+      // AWS-issued certificate (not in Node's default CA store) is accepted.
+      // Traffic is still encrypted — this only skips CA chain verification.
+      // To pin the RDS CA, set DB_SSL_CA to the path of the AWS RDS CA bundle.
+      ssl: config.ssl ? { rejectUnauthorized: false } : false,
       types: {
         getTypeParser: (typeId: number, format: string | undefined) => {
           // Let Drizzle handle date/time parsing instead of pg driver

@@ -13,6 +13,7 @@ describe("DbConfig", () => {
         expect(config.host).toBe("localhost");
         expect(config.port).toBe(5432);
         expect(config.poolSize).toBe(10);
+        expect(config.ssl).toBe(true);
         // Required fields come from the provider
         expect(config.database).toBe("testdb");
         expect(config.username).toBe("testuser");
@@ -40,6 +41,7 @@ describe("DbConfig", () => {
       expect(config.username).toBe("admin");
       expect(config.password).toBe("secret");
       expect(config.poolSize).toBe(20);
+      expect(config.ssl).toBe(false);
     }).pipe(
       Effect.withConfigProvider(
         ConfigProvider.fromMap(
@@ -50,6 +52,7 @@ describe("DbConfig", () => {
             ["DB_USER", "admin"],
             ["DB_PASSWORD", "secret"],
             ["DB_POOL_SIZE", "20"],
+            ["DB_SSL", "false"],
           ]),
         ),
       ),

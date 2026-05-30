@@ -10,7 +10,7 @@
  *   DB_NAME, DB_USER, DB_PASSWORD
  *
  * Optional fields (have sensible defaults):
- *   DB_HOST (localhost), DB_PORT (5432), DB_POOL_SIZE (10)
+ *   DB_HOST (localhost), DB_PORT (5432), DB_POOL_SIZE (10), DB_SSL (true)
  */
 import { Config, Effect } from "effect";
 
@@ -33,4 +33,7 @@ export const DbConfig = Effect.all({
   username: Config.string("DB_USER"),
   password: Config.string("DB_PASSWORD"),
   poolSize: Config.integer("DB_POOL_SIZE").pipe(Config.withDefault(10)),
+  /** Enable TLS for the Postgres connection. Defaults to true (safe for RDS).
+   *  Set DB_SSL=false for local dev / docker compose. */
+  ssl: Config.boolean("DB_SSL").pipe(Config.withDefault(true)),
 });
