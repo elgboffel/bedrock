@@ -111,6 +111,67 @@ describe("internal-auth Layer", () => {
     ),
   );
 
+  it.effect("duplicate auth header (string[]) -> bare 401, no 500", () =>
+    Effect.gen(function* () {
+      const app = yield* FastifyServer;
+      yield* registerTestRoute;
+
+      const res = yield* Effect.promise(() =>
+        app.inject({
+          method: "GET",
+          url: "/items",
+          headers: { "x-internal-auth": [TEST_TOKEN, TEST_TOKEN] },
+        }),
+      );
+
+      expect(res.statusCode).toBe(401);
+      expect(res.body).toBe("");
+    }).pipe(
+      Effect.provide(TestLayers),
+      Effect.withConfigProvider(authConfig()),
+      Effect.scoped,
+    ),
+  );
+
+  it.effect("mixed-case INTERNAL_AUTH_HEADER still authenticates", () =>
+    Effect.gen(function* () {
+      const app = yield* FastifyServer;
+      yield* registerTestRoute;
+
+      const res = yield* Effect.promise(() =>
+        app.inject({
+          method: "GET",
+          url: "/items",
+          headers: { "x-internal-auth": TEST_TOKEN },
+        }),
+      );
+
+      expect(res.statusCode).toBe(200);
+      expect(res.json()).toEqual({ ok: true });
+    }).pipe(
+      Effect.provide(TestLayers),
+      Effect.withConfigProvider(authConfig({ header: "X-Internal-Auth" })),
+      Effect.scoped,
+    ),
+  );
+
+  it.effect("/health?x=1 (query string) still bypasses auth", () =>
+    Effect.gen(function* () {
+      const app = yield* FastifyServer;
+      yield* registerTestRoute;
+
+      const res = yield* Effect.promise(() =>
+        app.inject({ method: "GET", url: "/health?x=1" }),
+      );
+
+      expect(res.statusCode).toBe(200);
+    }).pipe(
+      Effect.provide(TestLayers),
+      Effect.withConfigProvider(authConfig()),
+      Effect.scoped,
+    ),
+  );
+
   it.effect("/health bypasses auth without token", () =>
     Effect.gen(function* () {
       const app = yield* FastifyServer;

@@ -9,7 +9,7 @@
  * construction fails and the app won't boot.
  */
 import { createHash, timingSafeEqual } from "node:crypto";
-import { Effect, Layer, Option } from "effect";
+import { Effect, Layer, Option, Runtime } from "effect";
 import { InternalAuthConfig } from "../config/config";
 import { FastifyServer } from "../fastify/fastify";
 
@@ -28,22 +28,38 @@ export const internalAuth = (opts?: { allowlist?: string[] }) => {
     Effect.gen(function* () {
       const app = yield* FastifyServer;
       const config = yield* InternalAuthConfig;
+      const runtime = yield* Effect.runtime<never>();
 
+      // Fastify lowercases all header names; normalize the configured key so a
+      // mixed-case INTERNAL_AUTH_HEADER still resolves (S3).
+      const headerKey = config.headerName.toLowerCase();
       const currentDigest = sha256(config.token);
       const previousDigest = Option.map(config.previousToken, sha256);
 
+      const logReject = (ip: string) =>
+        Runtime.runFork(runtime)(
+          Effect.logWarning(`internal-auth: rejected request from ${ip}`),
+        );
+
       app.addHook("onRequest", (request, reply, done) => {
-        // Bypass allowlisted paths
-        if (allowlist.has(request.url)) {
+        // Bypass allowlisted paths (strip query string so /health?x=1 matches).
+        const path = request.url.split("?")[0];
+        if (allowlist.has(path)) {
           done();
           return;
         }
 
-        const incoming = request.headers[config.headerName] as
-          | string
-          | undefined;
+        const incoming = request.headers[headerKey];
 
-        if (!incoming) {
+        if (incoming === undefined) {
+          reply.code(401).send();
+          return;
+        }
+
+        // A duplicate header arrives as string[]; hashing it would throw a 500
+        // and leak that the boundary exists. Reject as a bare 401 instead (S1).
+        if (typeof incoming !== "string") {
+          logReject(request.ip);
           reply.code(401).send();
           return;
         }
@@ -59,9 +75,7 @@ export const internalAuth = (opts?: { allowlist?: string[] }) => {
         if (matchesCurrent || matchesPrevious) {
           done();
         } else {
-          console.warn(
-            `internal-auth: rejected request from ${request.ip} to ${request.url}`,
-          );
+          logReject(request.ip);
           reply.code(401).send();
         }
       });
