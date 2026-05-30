@@ -54,7 +54,7 @@ export function PrivateBackend(name: string, args: PrivateBackendArgs) {
       fromPort: args.port,
       toPort: args.port,
       referencedSecurityGroupId: caller.securityGroupId,
-      description: `Allow caller ${i} -> ${name}:${args.port}`,
+      description: `Allow caller ${i} to ${name}:${args.port}`,
     });
   });
 
