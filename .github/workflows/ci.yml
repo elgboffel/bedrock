@@ -2,6 +2,10 @@ name: CI
 
 on:
   pull_request:
+    # Only run on PRs targeting these branches (forks still run CI via
+    # pull_request which has read-only GITHUB_TOKEN — safe but saves minutes
+    # on unrelated PRs).
+    branches: [main, dev]
   push:
     branches: [main, dev]
   # Nightly teardown of the dev stage (see nightly-teardown-dev), so a
@@ -85,6 +89,11 @@ jobs:
         with:
           role-to-assume: ${{ vars.AWS_DEPLOY_ROLE_ARN }}
           aws-region: ${{ vars.AWS_REGION }}
+      # Defensive: clear a stale lock from a previous hard failure (runner
+      # crash, GitHub infra issue). Safe because concurrency serializes deploys.
+      - name: Clear any stale SST state lock
+        run: pnpm sst unlock --stage production
+        continue-on-error: true
       - run: pnpm sst deploy --stage production
 
   # --- Dev stage: auto-deploy on push to `dev`, no approval gate ------------
@@ -119,7 +128,22 @@ jobs:
       - name: Clear any stale SST state lock
         run: pnpm sst unlock --stage dev
         continue-on-error: true
-      - run: pnpm sst deploy --stage dev
+      - name: Deploy dev
+        id: deploy-dev
+        run: |
+          OUTPUT=$(pnpm sst deploy --stage dev 2>&1)
+          echo "$OUTPUT"
+          # Extract the web URL from SST output for smoke test
+          URL=$(echo "$OUTPUT" | grep -oP 'web:\s*\K(https?://\S+)' || true)
+          echo "web_url=$URL" >> "$GITHUB_OUTPUT"
+      - name: Smoke test
+        if: steps.deploy-dev.outputs.web_url != ''
+        run: |
+          URL="${{ steps.deploy-dev.outputs.web_url }}"
+          echo "Smoke-testing $URL/health ..."
+          # Give ECS tasks time to pass health checks and register
+          sleep 30
+          curl --fail --retry 5 --retry-delay 10 --retry-all-errors "${URL}/health"
 
   # --- Nightly + manual teardown: guarantee dev is cleaned up ---------------
   # Runs on the cron schedule (02:00 UTC) and on the manual "Run workflow"
@@ -147,4 +171,7 @@ jobs:
         with:
           role-to-assume: ${{ vars.AWS_DEPLOY_ROLE_ARN }}
           aws-region: ${{ vars.AWS_REGION }}
+      - name: Clear any stale SST state lock
+        run: pnpm sst unlock --stage dev
+        continue-on-error: true
       - run: pnpm sst remove --stage dev
