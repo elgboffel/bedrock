@@ -98,6 +98,12 @@ jobs:
         with:
           role-to-assume: ${{ vars.AWS_DEPLOY_ROLE_ARN }}
           aws-region: ${{ vars.AWS_REGION }}
+      # Defensive: a previous run cancelled mid-deploy (cancel-in-progress) can
+      # leave the SST state locked. Concurrency guarantees only one dev deploy
+      # runs at a time, so clearing a stale lock here is safe. dev only.
+      - name: Clear any stale SST state lock
+        run: pnpm sst unlock --stage dev
+        continue-on-error: true
       - run: pnpm sst deploy --stage dev
 
   # --- Timed teardown: keep the dev stage up for a window, then remove ------
