@@ -108,7 +108,15 @@ no orphans, no stale lock. Trade-off: rapid dev pushes serialize (acceptable).
 
 ## Known open items (carried over)
 
-- [ ] **First fully-green deploy** — not achieved yet; do step 3 above.
+- [x] **First fully-green deploy** — achieved.
+- [x] **Health checks** — ECS container health checks on both web and api;
+      ALB target group health check on web (`/health`).
+- [x] **Node/pnpm version alignment** — Dockerfiles now match CI (Node 24, pnpm 11.5.0).
+- [x] **Region default** — `sst.config.ts` defaults to `eu-north-1` (matches account).
+- [x] **Production `sst unlock`** — defensive unlock before prod deploys.
+- [x] **Smoke test in CI** — dev deploy hits `/health` after deploy.
+- [x] **`.dockerignore` hardened** — excludes infra, CI, docs from build context.
+- [x] **Production DB sizing** — `t4g.medium` / 50 GB for prod, `t4g.micro` for dev.
 - [ ] **DB migration runner** — Drizzle migrations are NOT run by SST, and the
       dev DB is wiped every teardown (`removal: "remove"` for non-prod). The app
       will boot against an empty schema until this is wired. **Do before relying
