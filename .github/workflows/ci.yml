@@ -94,7 +94,7 @@ jobs:
       - name: Clear any stale SST state lock
         run: pnpm sst unlock --stage production
         continue-on-error: true
-      - run: pnpm sst deploy --stage production
+      - run: pnpm sst deploy --stage production --verbose
 
   # --- Dev stage: auto-deploy on push to `dev`, no approval gate ------------
   deploy-dev:
@@ -131,7 +131,7 @@ jobs:
       - name: Deploy dev
         id: deploy-dev
         run: |
-          OUTPUT=$(pnpm sst deploy --stage dev 2>&1)
+          OUTPUT=$(pnpm sst deploy --stage dev --verbose 2>&1)
           echo "$OUTPUT"
           # Extract the web URL from SST output for smoke test
           URL=$(echo "$OUTPUT" | grep -oP 'web:\s*\K(https?://\S+)' || true)
