@@ -99,6 +99,21 @@ describe("internal-proxy-headers", () => {
     expect(result["x-forwarded-proto"]).toBe("http");
   });
 
+  it("strips spoofable x-real-ip and forwarded headers", () => {
+    const result = rewriteProxyHeaders(
+      {
+        "x-real-ip": "1.2.3.4",
+        forwarded: "for=1.2.3.4;proto=https",
+        accept: "*/*",
+      },
+      { ...defaults, remoteAddress: "10.0.0.1" },
+    );
+
+    expect(result).not.toHaveProperty("x-real-ip");
+    expect(result).not.toHaveProperty("forwarded");
+    expect(result).toHaveProperty("accept", "*/*");
+  });
+
   it("forwards other headers through (denylist model)", () => {
     const result = rewriteProxyHeaders(
       {

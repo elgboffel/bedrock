@@ -53,6 +53,11 @@ export function rewriteProxyHeaders(
     // Strip client-supplied x-forwarded-* (re-authored below)
     if (lower === "x-forwarded-for" || lower === "x-forwarded-proto") continue;
 
+    // Strip spoofable secondary forwarding headers. We only re-author
+    // x-forwarded-*, so a client could otherwise sneak x-real-ip / RFC 7239
+    // `Forwarded` straight through to a backend that trusts them.
+    if (lower === "x-real-ip" || lower === "forwarded") continue;
+
     if (value !== undefined) {
       result[lower] = Array.isArray(value) ? value.join(", ") : value;
     }
