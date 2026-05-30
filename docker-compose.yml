@@ -38,6 +38,18 @@ services:
       INTERNAL_AUTH_TOKEN: ${INTERNAL_AUTH_TOKEN}
       INTERNAL_AUTH_PREVIOUS_TOKEN: ${INTERNAL_AUTH_PREVIOUS_TOKEN:-}
       OTEL_SERVICE_NAME: bedrock-api
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "node",
+          "-e",
+          "fetch('http://localhost:3001/health').then((r)=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))",
+        ]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
     depends_on:
       postgres:
         condition: service_healthy
@@ -58,7 +70,8 @@ services:
       INTERNAL_AUTH_TOKEN: ${INTERNAL_AUTH_TOKEN}
       OTEL_SERVICE_NAME: bedrock-web
     depends_on:
-      - api
+      api:
+        condition: service_healthy
     networks:
       - internal
 
