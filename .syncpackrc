@@ -1,6 +1,13 @@
 {
   "versionGroups": [
     {
+      "label": "Peer ranges are intentionally permissive",
+      "packages": ["**"],
+      "dependencies": ["**"],
+      "dependencyTypes": ["peer"],
+      "isIgnored": true
+    },
+    {
       "label": "Internal packages should use workspace protocol",
       "packages": ["**"],
       "dependencies": ["@repo/**"],
