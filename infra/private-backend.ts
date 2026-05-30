@@ -25,6 +25,10 @@ export interface PrivateBackendArgs {
   cluster: sst.aws.Cluster;
   /** Container/listen port the backend serves on. */
   port: number;
+  /** vCPU allocation (e.g. "0.25 vCPU", "0.5 vCPU"). */
+  cpu?: string;
+  /** Memory allocation (e.g. "0.5 GB", "1 GB"). */
+  memory?: string;
   /** Docker image build inputs. */
   image: { dockerfile: string; context: string };
   /** SST resources linked into the service (secrets, db, ...). */
@@ -60,6 +64,8 @@ export function PrivateBackend(name: string, args: PrivateBackendArgs) {
 
   const service = new sst.aws.Service(name, {
     cluster: args.cluster,
+    cpu: args.cpu,
+    memory: args.memory,
     image: args.image,
     link: args.link,
     serviceRegistry: { port: args.port }, // Cloud Map DNS, no ALB

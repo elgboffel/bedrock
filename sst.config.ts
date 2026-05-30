@@ -45,6 +45,8 @@ export default $config({
       DB_NAME: db.database,
       DB_USER: db.username,
       DB_PASSWORD: db.password,
+      // RDS connections use TLS; local dev overrides to false via .env.
+      DB_SSL: "true",
     };
 
     // --- Secrets (ADR-001 L2: one token per backend) -----------------------
@@ -60,6 +62,8 @@ export default $config({
       vpc,
       cluster,
       port: 3001,
+      cpu: $app.stage === "production" ? "0.5 vCPU" : "0.25 vCPU",
+      memory: $app.stage === "production" ? "1 GB" : "0.5 GB",
       image: { dockerfile: "apps/api/Dockerfile", context: "." },
       link: [db, apiToken, apiPrevToken],
       callers: [{ securityGroupId: webSg.id }],
@@ -75,6 +79,8 @@ export default $config({
     // --- web: public front-door -------------------------------------------
     const web = new sst.aws.Service("Web", {
       cluster,
+      cpu: $app.stage === "production" ? "0.5 vCPU" : "0.25 vCPU",
+      memory: $app.stage === "production" ? "1 GB" : "0.5 GB",
       image: { dockerfile: "apps/web/Dockerfile", context: "." },
       link: [api.service, apiToken],
       // ECS container-level health check — catches crash-loops before the ALB
@@ -90,7 +96,8 @@ export default $config({
         retries: 3,
       },
       loadBalancer: {
-        // Add "443/https" + a domain once an ACM cert exists.
+        // TODO(https): Add "443/https" + a domain once an ACM cert exists.
+        // HTTP-only is NOT suitable for production — user traffic is unencrypted.
         ports: [{ listen: "80/http", forward: "3000/http" }],
         health: {
           "3000/http": {
