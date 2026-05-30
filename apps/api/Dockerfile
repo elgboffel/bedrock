@@ -1,7 +1,7 @@
 # ---------------------------------------------------------------------------
 # Stage 1: deps — install all workspace dependencies
 # ---------------------------------------------------------------------------
-FROM node:24-alpine AS deps
+FROM node:24.16.0-alpine AS deps
 
 RUN corepack enable && corepack prepare pnpm@11.5.0 --activate
 
@@ -11,11 +11,13 @@ WORKDIR /app
 COPY pnpm-lock.yaml pnpm-workspace.yaml package.json ./
 COPY apps/api/package.json ./apps/api/
 COPY packages/common/package.json ./packages/common/
+COPY packages/contracts/package.json ./packages/contracts/
 COPY packages/database/package.json ./packages/database/
 COPY packages/server/package.json ./packages/server/
 COPY packages/telemetry/package.json ./packages/telemetry/
 COPY packages/typescript-config/package.json ./packages/typescript-config/
 COPY packages/ui/package.json ./packages/ui/
+COPY tooling/layout-lint/package.json ./tooling/layout-lint/
 
 RUN pnpm install --frozen-lockfile --ignore-scripts
 
@@ -39,7 +41,7 @@ RUN pnpm deploy --filter=api --prod --legacy /app/deployed
 # ---------------------------------------------------------------------------
 # Stage 3: runtime — minimal production image
 # ---------------------------------------------------------------------------
-FROM node:24-alpine AS runtime
+FROM node:24.16.0-alpine AS runtime
 
 # curl is needed for the ECS container health check (CMD-SHELL).
 RUN apk add --no-cache curl && \
