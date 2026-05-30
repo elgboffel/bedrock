@@ -11,3 +11,5 @@ build
 .zed/
 
 .playwright-cli/
+.sst
+sst.env.local

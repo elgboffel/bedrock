@@ -4,6 +4,8 @@
   "private": true,
   "scripts": {
     "preflight": "bash tooling/scripts/preflight.sh",
+    "sst:bootstrap": "bash tooling/scripts/sst-bootstrap.sh",
+    "deploy": "sst deploy",
     "dev": "pnpm preflight && bash -c 'set -a && source .env && set +a && exec turbo dev'",
     "start": "turbo start",
     "build": "turbo build",
@@ -29,6 +31,7 @@
     "@changesets/cli": "^2.29.8",
     "husky": "^9.1.7",
     "lint-staged": "^16.2.7",
+    "sst": "^4.15.2",
     "syncpack": "^13.0.4",
     "turbo": "^2.7.4",
     "typescript": "^5.9.3"
