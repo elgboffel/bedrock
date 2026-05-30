@@ -11,10 +11,10 @@ on:
   # Manual "Run workflow" button — handy to force-remove the dev stage on demand.
   workflow_dispatch:
 
-# Cancel superseded runs on the same ref (e.g. new push to a PR branch).
-concurrency:
-  group: ${{ github.workflow }}-${{ github.ref }}
-  cancel-in-progress: true
+# NOTE: concurrency is set PER JOB below, not workflow-wide. Test jobs cancel
+# superseded runs (save minutes); deploy/remove jobs must NEVER be cancelled
+# mid-flight — killing `sst deploy` halfway orphans resources and locks state.
+# They use cancel-in-progress: false so a new push QUEUES behind them instead.
 
 # Opt JS actions into Node.js 24 now (some actions still bundle Node 20).
 env:
@@ -25,6 +25,9 @@ jobs:
     name: lint · typecheck · build · unit tests
     # Skip the test suite on schedule/manual runs — those only manage the dev stage.
     if: github.event_name == 'push' || github.event_name == 'pull_request'
+    concurrency:
+      group: ${{ github.workflow }}-ci-${{ github.ref }}
+      cancel-in-progress: true # cheap tests: cancel superseded runs
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v5
@@ -43,6 +46,9 @@ jobs:
   integration:
     name: integration tests (Docker)
     if: github.event_name == 'push' || github.event_name == 'pull_request'
+    concurrency:
+      group: ${{ github.workflow }}-integration-${{ github.ref }}
+      cancel-in-progress: true
     runs-on: ubuntu-latest # ships Docker; testcontainers pulls postgres:16
     steps:
       - uses: actions/checkout@v5
@@ -58,6 +64,10 @@ jobs:
     name: deploy (sst, production)
     needs: [ci, integration]
     if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    # NEVER cancel a deploy mid-flight — serialize prod deploys instead.
+    concurrency:
+      group: ${{ github.workflow }}-deploy-production
+      cancel-in-progress: false
     runs-on: ubuntu-latest
     environment: production # required-reviewer gate (configure in repo settings)
     permissions:
@@ -82,6 +92,11 @@ jobs:
     name: deploy (sst, dev)
     needs: [ci, integration]
     if: github.ref == 'refs/heads/dev' && github.event_name == 'push'
+    # NEVER cancel a deploy mid-flight (orphans + state lock). A new push to dev
+    # queues behind the running deploy instead of killing it.
+    concurrency:
+      group: ${{ github.workflow }}-deploy-dev
+      cancel-in-progress: false
     runs-on: ubuntu-latest
     permissions:
       id-token: write # OIDC
@@ -113,6 +128,11 @@ jobs:
   teardown-dev:
     name: teardown dev (timed)
     needs: deploy-dev
+    # Safe to cancel: a superseded teardown is almost always mid-`sleep`, and
+    # the nightly backstop + next deploy reconcile any rare mid-remove case.
+    concurrency:
+      group: ${{ github.workflow }}-teardown-dev
+      cancel-in-progress: true
     runs-on: ubuntu-latest
     permissions:
       id-token: write
@@ -139,6 +159,11 @@ jobs:
   nightly-teardown-dev:
     name: nightly dev teardown (backstop)
     if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
+    # Share the teardown group so a nightly sweep and a timed teardown can't
+    # run `sst remove` simultaneously; let the backstop finish (don't cancel).
+    concurrency:
+      group: ${{ github.workflow }}-teardown-dev
+      cancel-in-progress: false
     runs-on: ubuntu-latest
     permissions:
       id-token: write
