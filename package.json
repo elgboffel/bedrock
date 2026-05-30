@@ -7,7 +7,7 @@
     "sst:bootstrap": "bash tooling/scripts/sst-bootstrap.sh",
     "ci:setup-oidc": "bash tooling/scripts/setup-ci-oidc.sh",
     "ci:setup-github": "bash tooling/scripts/setup-ci-github.sh",
-    "deploy": "sst deploy",
+    "deploy:sst": "sst deploy",
     "dev": "pnpm preflight && bash -c 'set -a && source .env && set +a && exec turbo dev'",
     "start": "turbo start",
     "build": "turbo build",
