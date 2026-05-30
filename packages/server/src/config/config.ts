@@ -9,7 +9,7 @@
  * configuration object. Configs can be composed -- an app only pulls in
  * the config pieces it needs.
  */
-import { Config, Effect, Option } from "effect";
+import { Config, Effect } from "effect";
 
 /**
  * ServerConfig provides the basic server binding settings.

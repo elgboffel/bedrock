@@ -7,10 +7,8 @@
  * 3. cookie / authorization are dropped before reaching api.
  */
 import { it } from "@effect/vitest";
-import { InternalAuthConfig } from "@repo/server/config";
 import { FastifyLive, FastifyServer } from "@repo/server/fastify";
-import { internalAuth } from "@repo/server/internal-auth";
-import { ConfigProvider, Context, Effect, Layer } from "effect";
+import { ConfigProvider, Effect } from "effect";
 import Fastify from "fastify";
 import { afterAll, beforeAll, describe, expect } from "vitest";
 import { registerPlugins } from "./plugins";

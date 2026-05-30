@@ -125,18 +125,14 @@ describe("internal-client", () => {
     Effect.gen(function* () {
       const client = yield* InternalClient;
 
-      const exit = yield* client
+      const error = yield* client
         .request({
           method: "GET",
           path: "/error",
           responseSchema: TestItemsList,
         })
-        .pipe(Effect.exit);
+        .pipe(Effect.flip);
 
-      expect(exit._tag).toBe("Failure");
-      // Extract the error
-      const error =
-        exit._tag === "Failure" ? (exit.cause as any).error : undefined;
       expect(error).toBeInstanceOf(InternalClientError);
       expect(error.status).toBe(500);
     }).pipe(
@@ -149,17 +145,14 @@ describe("internal-client", () => {
     Effect.gen(function* () {
       const client = yield* InternalClient;
 
-      const exit = yield* client
+      const error = yield* client
         .request({
           method: "GET",
           path: "/bad-shape",
           responseSchema: TestItemsList,
         })
-        .pipe(Effect.exit);
+        .pipe(Effect.flip);
 
-      expect(exit._tag).toBe("Failure");
-      const error =
-        exit._tag === "Failure" ? (exit.cause as any).error : undefined;
       expect(error).toBeInstanceOf(InternalClientError);
       expect(error.message).toContain("Schema decode error");
     }).pipe(
@@ -172,17 +165,14 @@ describe("internal-client", () => {
     Effect.gen(function* () {
       const client = yield* InternalClient;
 
-      const exit = yield* client
+      const error = yield* client
         .request({
           method: "GET",
           path: "/slow",
           responseSchema: TestItemsList,
         })
-        .pipe(Effect.exit);
+        .pipe(Effect.flip);
 
-      expect(exit._tag).toBe("Failure");
-      const error =
-        exit._tag === "Failure" ? (exit.cause as any).error : undefined;
       expect(error).toBeInstanceOf(InternalClientError);
       expect(error.message).toContain("timed out");
     }).pipe(

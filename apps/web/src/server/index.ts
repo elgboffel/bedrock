@@ -33,7 +33,7 @@ import { FastifyLive, FastifyServer } from "@repo/server/fastify";
 import { LoggerLive } from "@repo/server/logger";
 import { RouteRunnerLive } from "@repo/server/route-runner";
 import { TracingLive } from "@repo/telemetry/tracing";
-import { Config, Effect, Layer } from "effect";
+import { Effect, Layer } from "effect";
 import { AstroDevConfig, AstroDevLive } from "./astro-dev/astro-dev";
 import { registerPlugins } from "./plugins/plugins";
 import { registerRoutes } from "./routes/routes";
