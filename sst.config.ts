@@ -8,9 +8,9 @@ export default $config({
       removal: input?.stage === "production" ? "retain" : "remove",
       home: "aws",
       // Region comes from the environment so `sst:bootstrap` (and CI) can set it
-      // without editing this file. Defaults to eu-west-1.
+      // without editing this file. Matches the actual account region.
       providers: {
-        aws: { region: (process.env.AWS_REGION ?? "eu-west-1") as aws.Region },
+        aws: { region: (process.env.AWS_REGION ?? "eu-north-1") as aws.Region },
       },
     };
   },
@@ -29,7 +29,14 @@ export default $config({
     const cluster = new sst.aws.Cluster("Cluster", { vpc });
 
     // --- Database (RDS Postgres) ------------------------------------------
-    const db = new sst.aws.Postgres("Db", { vpc });
+    const db = new sst.aws.Postgres("Db", {
+      vpc,
+      // Production: sized for real traffic with automated backups.
+      // Non-prod: smallest instance, minimal retention (torn down nightly anyway).
+      ...($app.stage === "production"
+        ? { instance: "t4g.medium", storage: "50 GB" }
+        : { instance: "t4g.micro" }),
+    });
 
     // App reads discrete DB_* vars (see packages/database/src/config/config.ts).
     const dbEnv = {
@@ -70,9 +77,29 @@ export default $config({
       cluster,
       image: { dockerfile: "apps/web/Dockerfile", context: "." },
       link: [api.service, apiToken],
+      // ECS container-level health check — catches crash-loops before the ALB
+      // health check does, and works even when no ALB is attached.
+      health: {
+        command: [
+          "CMD-SHELL",
+          "curl -f http://localhost:3000/health || exit 1",
+        ],
+        startPeriod: "60 seconds",
+        timeout: "5 seconds",
+        interval: "30 seconds",
+        retries: 3,
+      },
       loadBalancer: {
         // Add "443/https" + a domain once an ACM cert exists.
         ports: [{ listen: "80/http", forward: "3000/http" }],
+        health: {
+          "3000/http": {
+            path: "/health",
+            interval: "30 seconds",
+            healthyThreshold: 2,
+            unhealthyThreshold: 3,
+          },
+        },
       },
       environment: {
         SERVER_PORT: "3000",

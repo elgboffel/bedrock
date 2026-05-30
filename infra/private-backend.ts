@@ -64,6 +64,18 @@ export function PrivateBackend(name: string, args: PrivateBackendArgs) {
     link: args.link,
     serviceRegistry: { port: args.port }, // Cloud Map DNS, no ALB
     environment: args.environment,
+    // ECS container-level health check — no ALB on private backends, so this
+    // is the only mechanism to detect crash-looping containers.
+    health: {
+      command: [
+        "CMD-SHELL",
+        `curl -f http://localhost:${args.port}/health || exit 1`,
+      ],
+      startPeriod: "60 seconds",
+      timeout: "5 seconds",
+      interval: "30 seconds",
+      retries: 3,
+    },
     transform: {
       // Replace the permissive default VPC SG with our locked-down SG.
       // (At build time `networkConfiguration` is a plain object literal.)
