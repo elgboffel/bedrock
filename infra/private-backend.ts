@@ -40,7 +40,7 @@ export function PrivateBackend(name: string, args: PrivateBackendArgs) {
   // default SG removes its VPC-wide ingress fallback.
   const securityGroup = new aws.ec2.SecurityGroup(`${name}SecurityGroup`, {
     vpcId: args.vpc.id,
-    description: `SST PrivateBackend ${name} — source-SG ingress only`,
+    description: `SST PrivateBackend ${name} - source-SG ingress only`,
     egress: [
       { fromPort: 0, toPort: 0, protocol: "-1", cidrBlocks: ["0.0.0.0/0"] },
     ],
@@ -54,7 +54,7 @@ export function PrivateBackend(name: string, args: PrivateBackendArgs) {
       fromPort: args.port,
       toPort: args.port,
       referencedSecurityGroupId: caller.securityGroupId,
-      description: `Allow caller ${i} → ${name}:${args.port}`,
+      description: `Allow caller ${i} -> ${name}:${args.port}`,
     });
   });
 
