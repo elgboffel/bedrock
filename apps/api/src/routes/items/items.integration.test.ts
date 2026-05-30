@@ -30,6 +30,7 @@ const containerConfig = () =>
       ["DB_NAME", container.getDatabase()],
       ["DB_USER", container.getUsername()],
       ["DB_PASSWORD", container.getPassword()],
+      ["DB_SSL", "false"],
       ["INTERNAL_AUTH_TOKEN", TEST_TOKEN],
     ]),
   );

@@ -10,8 +10,11 @@
  * NodeRuntime.runMain handles SIGINT/SIGTERM and process exit.
  */
 
+import path from "node:path";
+import { fileURLToPath } from "node:url";
 import { NodeRuntime } from "@effect/platform-node";
-import { DrizzleLive } from "@repo/database/client";
+import { DB, DrizzleLive } from "@repo/database/client";
+import { runMigrations } from "@repo/database/migrator";
 import { ServerConfig } from "@repo/server/config";
 import { RouteRunnerLive } from "@repo/server/effect-route";
 import { FastifyLive, FastifyServer } from "@repo/server/fastify";
@@ -31,6 +34,21 @@ import { registerRoutes } from "./routes/routes";
 const program = Effect.gen(function* () {
   const app = yield* FastifyServer;
   const config = yield* ServerConfig;
+
+  // Run pending Drizzle migrations before accepting traffic.
+  // Idempotent — skips already-applied migrations on every boot.
+  //
+  // Explicit path: @repo/database is bundled inline by tsdown, so the
+  // migrator's default import.meta.url resolution points at dist/, not at
+  // node_modules. Resolve from this file's location instead.
+  const __dirname = path.dirname(fileURLToPath(import.meta.url));
+  const migrationsFolder = path.resolve(
+    __dirname,
+    "../node_modules/@repo/database/drizzle",
+  );
+  const db = yield* DB;
+  yield* runMigrations(db, migrationsFolder);
+  yield* Effect.logInfo("Database migrations applied");
 
   // Register all API routes
   yield* registerRoutes;
