@@ -35,7 +35,7 @@
     "sst": "^4.15.2",
     "syncpack": "^13.0.4",
     "turbo": "^2.9.16",
-    "typescript": "^5.9.3"
+    "typescript": "^6.0.3"
   },
   "volta": {
     "node": "22.22.0"
