@@ -1,9 +1,9 @@
 # ---------------------------------------------------------------------------
 # Stage 1: deps — install all workspace dependencies
 # ---------------------------------------------------------------------------
-FROM node:22-alpine AS deps
+FROM node:24-alpine AS deps
 
-RUN corepack enable && corepack prepare pnpm@10.14.0 --activate
+RUN corepack enable && corepack prepare pnpm@11.5.0 --activate
 
 WORKDIR /app
 
@@ -39,9 +39,11 @@ RUN pnpm deploy --filter=api --prod --legacy /app/deployed
 # ---------------------------------------------------------------------------
 # Stage 3: runtime — minimal production image
 # ---------------------------------------------------------------------------
-FROM node:22-alpine AS runtime
+FROM node:24-alpine AS runtime
 
-RUN addgroup --system --gid 1001 appgroup && \
+# curl is needed for the ECS container health check (CMD-SHELL).
+RUN apk add --no-cache curl && \
+    addgroup --system --gid 1001 appgroup && \
     adduser --system --uid 1001 appuser
 
 WORKDIR /app

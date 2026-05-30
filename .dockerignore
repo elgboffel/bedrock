@@ -8,7 +8,23 @@ build
 .DS_Store
 *.log
 .env
+.env.*
 .scratch
 .husky
 .vscode
 .idea
+
+# Infrastructure / CI — not needed in app containers
+infra/
+sst.config.ts
+sst.env.local
+sst-env.d.ts
+.sst/
+.github/
+tooling/
+docs/
+*-HANDOFF.md
+CONTEXT*.md
+AGENTS.md
+README.md
+LICENSE
