@@ -1,4 +1,4 @@
-import { Effect, Runtime, Schema } from "effect";
+import { Context, Effect, Layer, Runtime, Schema } from "effect";
 import type { FastifyReply, FastifyRequest } from "fastify";
 import { fallbackResponse, mapErrorToHttp } from "../error-mapper/error-mapper";
 import { parseErrorToValidation } from "../parse-error-to-validation/parse-error-to-validation";
@@ -166,3 +166,28 @@ export function createEffectRoute<R>(runtime: Runtime.Runtime<R>) {
 
   return { route, routeWithSchema };
 }
+
+// --- RouteRunner: Effect DI wiring for the runtime-aware factory ---
+
+type RouteHelpers = ReturnType<typeof createEffectRoute>;
+
+/** Tag carrying { route, routeWithSchema } helpers bound to the captured runtime. */
+export class RouteRunner extends Context.Tag("RouteRunner")<
+  RouteRunner,
+  RouteHelpers
+>() {}
+
+/**
+ * Layer that builds RouteRunner by capturing the ambient runtime via
+ * Effect.runtime(). MUST be provided after LoggerLive + the tracing Layer so
+ * the captured runtime carries those fiber refs (logger, tracer); otherwise
+ * route bodies log/trace into the wrong (default) runtime. This invariant is
+ * the reason the Tag lives here, co-located with the factory it wraps.
+ */
+export const RouteRunnerLive = Layer.effect(
+  RouteRunner,
+  Effect.gen(function* () {
+    const runtime = yield* Effect.runtime<never>();
+    return createEffectRoute(runtime);
+  }),
+);

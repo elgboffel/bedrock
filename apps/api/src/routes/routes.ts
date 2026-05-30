@@ -9,8 +9,8 @@
  */
 
 import type { DB } from "@repo/database/client";
+import type { RouteRunner } from "@repo/server/effect-route";
 import type { FastifyServer } from "@repo/server/fastify";
-import type { RouteRunner } from "@repo/server/route-runner";
 import { Effect } from "effect";
 import { registerHealthRoutes } from "./health/health";
 import { registerItemRoutes } from "./items/items";

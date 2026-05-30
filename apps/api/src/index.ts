@@ -13,10 +13,10 @@
 import { NodeRuntime } from "@effect/platform-node";
 import { DrizzleLive } from "@repo/database/client";
 import { ServerConfig } from "@repo/server/config";
+import { RouteRunnerLive } from "@repo/server/effect-route";
 import { FastifyLive, FastifyServer } from "@repo/server/fastify";
 import { InternalAuthLive } from "@repo/server/internal-auth";
 import { LoggerLive } from "@repo/server/logger";
-import { RouteRunnerLive } from "@repo/server/route-runner";
 import { OtlpTracingLive } from "@repo/telemetry/otlp";
 import { Effect, Layer } from "effect";
 import { registerRoutes } from "./routes/routes";

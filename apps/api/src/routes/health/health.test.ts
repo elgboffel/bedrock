@@ -1,9 +1,9 @@
 import { it } from "@effect/vitest";
 import { DB, DrizzleLive } from "@repo/database/client";
 import { runMigrations } from "@repo/database/migrator";
+import { RouteRunnerLive } from "@repo/server/effect-route";
 import { FastifyLive, FastifyServer } from "@repo/server/fastify";
 import { InternalAuthLive, withInternalAuth } from "@repo/server/internal-auth";
-import { RouteRunnerLive } from "@repo/server/route-runner";
 import { PostgreSqlContainer } from "@testcontainers/postgresql";
 import { ConfigProvider, Effect, Layer } from "effect";
 import { afterAll, beforeAll, describe, expect } from "vitest";

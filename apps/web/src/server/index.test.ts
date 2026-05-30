@@ -1,7 +1,7 @@
 import { it } from "@effect/vitest";
 import { ApiConfig } from "@repo/server/config";
+import { RouteRunnerLive } from "@repo/server/effect-route";
 import { FastifyLive, FastifyServer } from "@repo/server/fastify";
-import { RouteRunnerLive } from "@repo/server/route-runner";
 import { ConfigProvider, Effect, Layer } from "effect";
 import { describe, expect } from "vitest";
 import { registerPlugins } from "./plugins/plugins";

@@ -1,7 +1,7 @@
 import { COMMON_CONSTANT, sayHello } from "@repo/common/utils";
 import { DB } from "@repo/database/client";
+import { RouteRunner } from "@repo/server/effect-route";
 import { FastifyServer } from "@repo/server/fastify";
-import { RouteRunner } from "@repo/server/route-runner";
 import { sql } from "drizzle-orm";
 import { Effect } from "effect";
 

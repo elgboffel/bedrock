@@ -1,10 +1,14 @@
 import { it } from "@effect/vitest";
 import { ConfigProvider, Effect, Logger } from "effect";
 import { describe, expect } from "vitest";
-import { created, withStatus } from "../effect-route/effect-route";
 import { NotFound, Unauthorized } from "../errors/errors";
 import { FastifyLive, FastifyServer } from "../fastify/fastify";
-import { RouteRunner, RouteRunnerLive } from "./route-runner";
+import {
+  created,
+  RouteRunner,
+  RouteRunnerLive,
+  withStatus,
+} from "./effect-route";
 
 function makeTestLogger() {
   const entries: Array<{ level: string; message: string }> = [];

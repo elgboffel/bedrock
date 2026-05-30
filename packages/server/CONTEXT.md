@@ -29,6 +29,10 @@ backs this up in `turbo check`. See `.scratch/folder-per-module-layout/PRD.md` a
 - **`RouteRunner`** — Tag carrying `{ route, routeWithSchema }` helpers built from
   the ambient runtime. The Layer (`RouteRunnerLive`) captures the runtime via
   `Effect.runtime()` so route bodies inherit logger, tracer, and other fiber refs.
+  Tag, Layer, and the `createEffectRoute` factory all live in the **`effect-route`**
+  module — the Tag is the Effect-DI wiring co-located with the factory it wraps, so
+  the captured-runtime invariant sits next to the code it guards (see ADR-002). Import
+  everything route-adapter from `@repo/server/effect-route`.
 - **`route` / `routeWithSchema`** — adapters that turn an Effect-returning function
   into a Fastify handler. `routeWithSchema` decodes `params` / `query` / `body` via
   Effect Schemas before invoking the body; decode failures become `ValidationError`.
