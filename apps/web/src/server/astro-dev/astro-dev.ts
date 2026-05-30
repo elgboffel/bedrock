@@ -54,13 +54,13 @@ const waitForReady = (
   const intervalMs = opts?.intervalMs ?? 500;
 
   return Effect.tryPromise({
-    try: () => fetch(url).then(() => undefined),
+    // Abort each poll so a half-open socket can't stall an attempt forever.
+    try: () =>
+      fetch(url, { signal: AbortSignal.timeout(intervalMs) }).then(
+        () => undefined,
+      ),
     catch: () => "not ready" as const,
   }).pipe(
-    Effect.filterOrFail(
-      () => true,
-      () => "not ready" as const,
-    ),
     Effect.retry(
       Schedule.recurs(maxRetries).pipe(
         Schedule.addDelay(() => `${intervalMs} millis`),
