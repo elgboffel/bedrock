@@ -15,21 +15,21 @@
     "test:integration": "vitest run --config vitest.integration.config.ts"
   },
   "dependencies": {
+    "@effect/platform-node": "^0.106.0",
     "@repo/common": "workspace:*",
     "@repo/contracts": "workspace:*",
     "@repo/database": "workspace:*",
     "@repo/server": "workspace:*",
     "@repo/telemetry": "workspace:*",
-    "effect": "^3.21.2",
-    "@effect/platform-node": "^0.106.0",
-    "drizzle-orm": "1.0.0-beta.22"
+    "drizzle-orm": "1.0.0-beta.22",
+    "effect": "^3.21.2"
   },
   "devDependencies": {
+    "@effect/vitest": "^0.29.0",
     "@repo/layout-lint": "workspace:*",
     "@repo/typescript-config": "workspace:*",
-    "@effect/vitest": "^0.29.0",
     "@testcontainers/postgresql": "^11.14.0",
-    "@types/node": "^22.10.0",
+    "@types/node": "^22.19.19",
     "concurrently": "^9.2.1",
     "nodemon": "^3.1.14",
     "tsdown": "^0.20.3",
