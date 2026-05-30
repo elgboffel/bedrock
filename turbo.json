@@ -1,6 +1,27 @@
 {
   "$schema": "https://turbo.build/schema.json",
-  "globalPassThroughEnv": ["*"],
+  "globalPassThroughEnv": [
+    "NODE_ENV",
+    "CI",
+    "DB_HOST",
+    "DB_PORT",
+    "DB_NAME",
+    "DB_USER",
+    "DB_PASSWORD",
+    "DB_POOL_SIZE",
+    "DB_SSL",
+    "SERVER_PORT",
+    "SERVER_HOST",
+    "LOG_LEVEL",
+    "API_URL",
+    "INTERNAL_AUTH_TOKEN",
+    "INTERNAL_AUTH_PREVIOUS_TOKEN",
+    "INTERNAL_AUTH_HEADER",
+    "OTEL_SERVICE_NAME",
+    "OTEL_EXPORTER_ENDPOINT",
+    "OTEL_SAMPLING_RATE",
+    "OTEL_ENABLED"
+  ],
   "tasks": {
     "build": {
       "dependsOn": ["^build"],
