@@ -2,3 +2,27 @@ packages:
   - 'apps/*'
   - 'packages/*'
   - 'tooling/layout-lint'
+
+# Supply-chain cutoff. pnpm 11 defaults this to 1440 (24h) and verifies it against
+# *every* lockfile entry on `--frozen-lockfile` — so a lockfile committed within the
+# cutoff of any dep's publish fails fresh/CI installs until those deps age out. That
+# is exactly the state right after a dependency bump (this repo's lockfile is fresh
+# from the "everything to latest" pass). We opt out for now (0 = pnpm-10 parity, no
+# regression) and will raise it to 1440 in a follow-up once the lockfile is settled.
+# See ADR-003.
+minimumReleaseAge: 0
+
+# Build-script policy (pnpm 11 `allowBuilds`): these deps ship native/postinstall
+# scripts. We explicitly DO NOT run them (false) — matches the pnpm-10 green
+# baseline; binaries come from prebuilt platform optionalDeps, not these scripts.
+# An explicit decision (true/false) silences the interactive approve-builds prompt
+# AND the ERR_PNPM_IGNORED_BUILDS failure on fresh installs, so CI is deterministic.
+allowBuilds:
+  '@parcel/watcher': false
+  cpu-features: false
+  esbuild: false
+  msgpackr-extract: false
+  msw: false
+  protobufjs: false
+  sharp: false
+  ssh2: false
