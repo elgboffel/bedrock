@@ -1,4 +1,4 @@
-import { describe, expect, test } from "vitest";
+import { describe, expect, expectTypeOf, test } from "vitest";
 import {
   ConflictError,
   InternalError,
@@ -155,5 +155,24 @@ describe("createErrorMapper", () => {
 
     const result = customMapper(new NotFound({ resource: "X" }));
     expect(result.body.message).toBe("custom not found");
+  });
+});
+
+describe("typed error registry", () => {
+  test("each default mapper receives its correctly-typed error variant", () => {
+    // Compile-time proof: the registry types `error` as the exact variant for
+    // its tag, so these property accesses type-check without any `as` cast.
+    // (The mapper for a forgotten tag would be a compile error in the registry.)
+    expectTypeOf(new NotFound({ resource: "User(1)" })).toHaveProperty(
+      "resource",
+    );
+    expectTypeOf(new ConflictError({ resource: "Item" })).toHaveProperty(
+      "detail",
+    );
+    expectTypeOf(new ValidationError({ message: "x" })).toHaveProperty(
+      "fields",
+    );
+    expectTypeOf(new Unauthorized({})).toHaveProperty("reason");
+    expectTypeOf(new InternalError({ message: "x" })).toHaveProperty("message");
   });
 });
