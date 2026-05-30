@@ -10,6 +10,7 @@
  * the config pieces it needs.
  */
 import { Config, Effect } from "effect";
+import { DEFAULT_INTERNAL_AUTH_HEADER } from "../internal-credential/internal-credential";
 
 /**
  * ServerConfig provides the basic server binding settings.
@@ -72,6 +73,6 @@ export const InternalAuthConfig = Effect.all({
   ),
   previousToken: Config.option(Config.string("INTERNAL_AUTH_PREVIOUS_TOKEN")),
   headerName: Config.string("INTERNAL_AUTH_HEADER").pipe(
-    Config.withDefault("x-internal-auth"),
+    Config.withDefault(DEFAULT_INTERNAL_AUTH_HEADER),
   ),
 });

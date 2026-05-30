@@ -35,11 +35,22 @@ backs this up in `turbo check`. See `.scratch/folder-per-module-layout/PRD.md` a
 - **Tagged domain errors** — `NotFound`, `Unauthorized`, `ValidationError`,
   `ConflictError`, `InternalError` (all `Data.TaggedError`). Route bodies `Effect.fail`
   these; the adapter catches them.
-- **`mapErrorToHttp`** — single function from tagged error → `{ status, body }`.
-  Unknown tags fall through to a generic 500. Edit this mapping (not the routes) when
-  the wire format changes.
+- **`mapErrorToHttp`** — single function from tagged error → `{ status, body }`,
+  backed by a typed `ErrorRegistry` keyed by the tagged-error union. The registry
+  forces a mapping for every tag (forget one → compile error, not a runtime 500)
+  and types each mapper's `error` as the exact variant. Unknown (non-domain) tags
+  fall through to a generic 500. Edit this mapping (not the routes) when the wire
+  format changes.
 - **`parseErrorToValidation`** — translates Effect `ParseError` into a `ValidationError`
   with flat `fields: Record<path, messages[]>`.
+- **`internal-credential`** — the single owner of the internal service-to-service
+  credential invariant ("header `x-internal-auth` carries the shared token"). Exposes
+  `DEFAULT_INTERNAL_AUTH_HEADER`, `injectCredential` (produce the header for outgoing /
+  proxied calls), and `makeVerifier` (a `CredentialVerifier` doing timing-safe SHA-256
+  comparison with previous-token rotation, plus the normalized `headerKey`). The three
+  adapters at this seam — `internal-client`, `internal-proxy-headers`, `internal-auth`
+  — are thin over it; none re-derives the header name or the comparison rule. Rename the
+  header or change the comparison here, not in three places.
 
 ## Key invariants
 
@@ -66,5 +77,9 @@ backs this up in `turbo check`. See `.scratch/folder-per-module-layout/PRD.md` a
 ## Add a new error type
 
 1. Add a `Data.TaggedError("NewThing")` class to `errors/errors.ts`.
-2. Add a mapping entry in `error-mapper/error-mapper.ts` (`defaultMappings`).
-3. Throw it from a route body via `yield* new NewThing({ ... })` or `Effect.fail`.
+2. Add `NewThing` to the `DomainError` union in `error-mapper/error-mapper.ts`.
+   The `ErrorRegistry` mapped type now requires a `NewThing` entry — TypeScript
+   fails `turbo check` until you add it, so it can't silently fall through to 500.
+3. Add the `NewThing` mapping entry in `defaultMappings`. Its `error` argument is
+   already typed as the new variant — read fields directly, no `as` cast.
+4. Throw it from a route body via `yield* new NewThing({ ... })` or `Effect.fail`.

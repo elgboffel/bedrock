@@ -5,6 +5,7 @@
  * and hop-by-hop headers, re-author forwarding headers, forward the rest,
  * and inject the internal auth token last.
  */
+import { injectCredential } from "../internal-credential/internal-credential";
 
 const HOP_BY_HOP = new Set([
   "connection",
@@ -67,9 +68,12 @@ export function rewriteProxyHeaders(
   result["x-forwarded-for"] = opts.remoteAddress ?? "unknown";
   result["x-forwarded-proto"] = opts.protocol ?? "http";
 
-  // Inject internal auth token last (cannot be overridden)
-  const headerName = opts.headerName ?? "x-internal-auth";
-  result[headerName] = opts.token;
+  // Inject internal auth token last (cannot be overridden). The credential
+  // module owns the header name and its default.
+  Object.assign(
+    result,
+    injectCredential({ token: opts.token, headerName: opts.headerName }),
+  );
 
   return result;
 }

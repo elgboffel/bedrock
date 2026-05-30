@@ -8,14 +8,14 @@
  * Fail-closed: if INTERNAL_AUTH_TOKEN is missing from config, Layer
  * construction fails and the app won't boot.
  */
-import { createHash, timingSafeEqual } from "node:crypto";
-import { Effect, Layer, Option, Runtime } from "effect";
+import { Effect, Layer, Runtime } from "effect";
 import { InternalAuthConfig } from "../config/config";
 import { FastifyServer } from "../fastify/fastify";
-
-/** SHA-256 digest for constant-time comparison that hides token length. */
-const sha256 = (value: string): Buffer =>
-  createHash("sha256").update(value).digest();
+import {
+  DEFAULT_INTERNAL_AUTH_HEADER,
+  injectCredential,
+  makeVerifier,
+} from "../internal-credential/internal-credential";
 
 /**
  * Factory: create an InternalAuth Layer with a custom path allowlist.
@@ -30,11 +30,14 @@ export const internalAuth = (opts?: { allowlist?: string[] }) => {
       const config = yield* InternalAuthConfig;
       const runtime = yield* Effect.runtime<never>();
 
-      // Fastify lowercases all header names; normalize the configured key so a
-      // mixed-case INTERNAL_AUTH_HEADER still resolves (S3).
-      const headerKey = config.headerName.toLowerCase();
-      const currentDigest = sha256(config.token);
-      const previousDigest = Option.map(config.previousToken, sha256);
+      // The credential module owns header normalization (S3) and the
+      // timing-safe comparison (incl. previous-token rotation).
+      const verifier = makeVerifier({
+        token: config.token,
+        previousToken: config.previousToken,
+        headerName: config.headerName,
+      });
+      const headerKey = verifier.headerKey;
 
       const logReject = (ip: string) =>
         Runtime.runFork(runtime)(
@@ -51,28 +54,15 @@ export const internalAuth = (opts?: { allowlist?: string[] }) => {
 
         const incoming = request.headers[headerKey];
 
+        // Presence is a request concern, not a credential one: an absent header
+        // is a bare 401 with no log. A duplicate header (string[]) is rejected
+        // by the verifier (S1) and logged below.
         if (incoming === undefined) {
           reply.code(401).send();
           return;
         }
 
-        // A duplicate header arrives as string[]; hashing it would throw a 500
-        // and leak that the boundary exists. Reject as a bare 401 instead (S1).
-        if (typeof incoming !== "string") {
-          logReject(request.ip);
-          reply.code(401).send();
-          return;
-        }
-
-        const incomingDigest = sha256(incoming);
-
-        const matchesCurrent = timingSafeEqual(incomingDigest, currentDigest);
-        const matchesPrevious = Option.match(previousDigest, {
-          onNone: () => false,
-          onSome: (prev) => timingSafeEqual(incomingDigest, prev),
-        });
-
-        if (matchesCurrent || matchesPrevious) {
+        if (verifier.verify(incoming)) {
           done();
         } else {
           logReject(request.ip);
@@ -91,4 +81,4 @@ export const InternalAuthLive = internalAuth();
  * Uses the test token value — provide via ConfigProvider in tests.
  */
 export const withInternalAuth = (token = "test-secret-token") =>
-  ({ "x-internal-auth": token }) as const;
+  injectCredential({ token, headerName: DEFAULT_INTERNAL_AUTH_HEADER });

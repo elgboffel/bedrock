@@ -9,6 +9,7 @@
  */
 import { Context, Data, Effect, Layer, Schema } from "effect";
 import { ApiConfig, InternalAuthConfig } from "../config/config";
+import { injectCredential } from "../internal-credential/internal-credential";
 
 /** Tagged error for internal-client failures (non-2xx, decode, network). */
 export class InternalClientError extends Data.TaggedError(
@@ -54,7 +55,7 @@ export const InternalClientLive = Layer.effect(
           const url = `${base}${opts.path}`;
 
           const headers: Record<string, string> = {
-            [headerName]: token,
+            ...injectCredential({ token, headerName }),
             accept: "application/json",
           };
           if (opts.body !== undefined) {
