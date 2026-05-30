@@ -21,7 +21,11 @@ export default $config({
     const { PrivateBackend } = await import("./infra/private-backend");
 
     // --- Network -----------------------------------------------------------
-    const vpc = new sst.aws.Vpc("Vpc", { nat: "managed" });
+    // Managed NAT gateway in production (HA, ~$32/mo); cheap EC2 NAT instance
+    // (~$3-4/mo, single AZ, no HA) for dev and other non-prod stages.
+    const vpc = new sst.aws.Vpc("Vpc", {
+      nat: $app.stage === "production" ? "managed" : "ec2",
+    });
     const cluster = new sst.aws.Cluster("Cluster", { vpc });
 
     // --- Database (RDS Postgres) ------------------------------------------

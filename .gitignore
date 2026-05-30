@@ -13,3 +13,4 @@ build
 .playwright-cli/
 .sst
 sst.env.local
+sst-env.d.ts
