@@ -15,7 +15,9 @@ const TestItem = Schema.Struct({
 });
 
 /** Tiny upstream Fastify that captures headers and returns typed JSON. */
-const upstream = Fastify({ logger: false });
+// forceCloseConnections drops idle keep-alive sockets on close() so afterAll
+// teardown doesn't hang waiting for the fetch client's pooled connections.
+const upstream = Fastify({ logger: false, forceCloseConnections: true });
 let baseUrl: string;
 
 beforeAll(async () => {
