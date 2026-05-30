@@ -131,10 +131,9 @@ jobs:
       - name: Deploy dev
         id: deploy-dev
         run: |
-          OUTPUT=$(pnpm sst deploy --stage dev --verbose 2>&1)
-          echo "$OUTPUT"
+          pnpm sst deploy --stage dev --verbose 2>&1 | tee /tmp/sst-output.log
           # Extract the web URL from SST output for smoke test
-          URL=$(echo "$OUTPUT" | grep -oP 'web:\s*\K(https?://\S+)' || true)
+          URL=$(grep -oP 'web:\s*\K(https?://\S+)' /tmp/sst-output.log || true)
           echo "web_url=$URL" >> "$GITHUB_OUTPUT"
       - name: Smoke test
         if: steps.deploy-dev.outputs.web_url != ''
