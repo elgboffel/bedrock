@@ -37,7 +37,7 @@ export class InternalClient extends Context.Tag("InternalClient")<
 export const InternalClientLive = Layer.effect(
   InternalClient,
   Effect.gen(function* () {
-    const { apiUrl } = yield* ApiConfig;
+    const { apiUrl, timeoutMs } = yield* ApiConfig;
     const { token, headerName } = yield* InternalAuthConfig;
 
     // Strip trailing slash from base URL
@@ -63,6 +63,8 @@ export const InternalClientLive = Layer.effect(
 
           const response = yield* Effect.tryPromise({
             try: () =>
+              // AbortSignal.timeout aborts a slow backend so SSR can't stall
+              // indefinitely; the abort surfaces as an InternalClientError.
               fetch(url, {
                 method: opts.method,
                 headers,
@@ -70,10 +72,14 @@ export const InternalClientLive = Layer.effect(
                   opts.body !== undefined
                     ? JSON.stringify(opts.body)
                     : undefined,
+                signal: AbortSignal.timeout(timeoutMs),
               }),
             catch: (err) =>
               new InternalClientError({
-                message: `Network error: ${err}`,
+                message:
+                  err instanceof Error && err.name === "TimeoutError"
+                    ? `Request timed out after ${timeoutMs}ms`
+                    : `Network error: ${err}`,
               }),
           });
 

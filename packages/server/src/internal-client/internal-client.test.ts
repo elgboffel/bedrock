@@ -46,6 +46,12 @@ beforeAll(async () => {
     return { wrong: "shape" };
   });
 
+  // Never responds within the test timeout window
+  upstream.get("/slow", async () => {
+    await new Promise((resolve) => setTimeout(resolve, 1000));
+    return { items: [] };
+  });
+
   const address = await upstream.listen({ port: 0, host: "127.0.0.1" });
   baseUrl = address; // e.g. http://127.0.0.1:12345
 });
@@ -159,6 +165,37 @@ describe("internal-client", () => {
     }).pipe(
       Effect.provide(InternalClientLive),
       Effect.withConfigProvider(testConfig()),
+    ),
+  );
+
+  it.effect("slow upstream times out -> InternalClientError", () =>
+    Effect.gen(function* () {
+      const client = yield* InternalClient;
+
+      const exit = yield* client
+        .request({
+          method: "GET",
+          path: "/slow",
+          responseSchema: TestItemsList,
+        })
+        .pipe(Effect.exit);
+
+      expect(exit._tag).toBe("Failure");
+      const error =
+        exit._tag === "Failure" ? (exit.cause as any).error : undefined;
+      expect(error).toBeInstanceOf(InternalClientError);
+      expect(error.message).toContain("timed out");
+    }).pipe(
+      Effect.provide(InternalClientLive),
+      Effect.withConfigProvider(
+        ConfigProvider.fromMap(
+          new Map([
+            ["INTERNAL_AUTH_TOKEN", TEST_TOKEN],
+            ["API_URL", baseUrl],
+            ["API_TIMEOUT_MS", "50"],
+          ]),
+        ),
+      ),
     ),
   );
 

@@ -83,15 +83,17 @@ it.effect(
   () =>
     Effect.gen(function* () {
       const config = yield* InternalAuthConfig;
-      expect(config.token).toBe("my-secret");
-      expect(Option.getOrNull(config.previousToken)).toBe("old-secret");
+      expect(config.token).toBe("my-secret-token-1234");
+      expect(Option.getOrNull(config.previousToken)).toBe(
+        "old-secret-token-1234",
+      );
       expect(config.headerName).toBe("x-custom-auth");
     }).pipe(
       Effect.withConfigProvider(
         ConfigProvider.fromMap(
           new Map([
-            ["INTERNAL_AUTH_TOKEN", "my-secret"],
-            ["INTERNAL_AUTH_PREVIOUS_TOKEN", "old-secret"],
+            ["INTERNAL_AUTH_TOKEN", "my-secret-token-1234"],
+            ["INTERNAL_AUTH_PREVIOUS_TOKEN", "old-secret-token-1234"],
             ["INTERNAL_AUTH_HEADER", "x-custom-auth"],
           ]),
         ),
@@ -104,12 +106,14 @@ it.effect(
   () =>
     Effect.gen(function* () {
       const config = yield* InternalAuthConfig;
-      expect(config.token).toBe("tok");
+      expect(config.token).toBe("valid-length-token");
       expect(Option.isNone(config.previousToken)).toBe(true);
       expect(config.headerName).toBe("x-internal-auth");
     }).pipe(
       Effect.withConfigProvider(
-        ConfigProvider.fromMap(new Map([["INTERNAL_AUTH_TOKEN", "tok"]])),
+        ConfigProvider.fromMap(
+          new Map([["INTERNAL_AUTH_TOKEN", "valid-length-token"]]),
+        ),
       ),
     ),
 );
@@ -119,4 +123,17 @@ it.effect("InternalAuthConfig fails when INTERNAL_AUTH_TOKEN is missing", () =>
     const exit = yield* InternalAuthConfig.pipe(Effect.exit);
     expect(exit._tag).toBe("Failure");
   }).pipe(Effect.withConfigProvider(ConfigProvider.fromMap(new Map()))),
+);
+
+it.effect(
+  "InternalAuthConfig fails when INTERNAL_AUTH_TOKEN is too short",
+  () =>
+    Effect.gen(function* () {
+      const exit = yield* InternalAuthConfig.pipe(Effect.exit);
+      expect(exit._tag).toBe("Failure");
+    }).pipe(
+      Effect.withConfigProvider(
+        ConfigProvider.fromMap(new Map([["INTERNAL_AUTH_TOKEN", "short"]])),
+      ),
+    ),
 );
