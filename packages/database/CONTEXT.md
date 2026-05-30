@@ -25,10 +25,17 @@ code, not from a separate CLI step. Tests use Testcontainers for real Postgres.
   definitions, one table per folder. The `schema` aggregator at
   `src/schema/schema.ts` collects them; apps import
   `from "@repo/database/schema"`.
-- **`isUniqueViolation(err)`** — sniffs Postgres SQLSTATE `23505` through the
-  `cause` / `failure` / `error` chain. Works whether the error comes from raw pg,
-  `@effect/sql` `SqlError`, or Drizzle/effect-postgres. Returns
-  `{ constraint } | null`.
+- **`writeOrConflict(write, { resource })`** — the write seam. Wraps a Drizzle
+  write Effect (insert / update / `.returning()`) and returns either the rows or
+  a `ConflictError`. Unique-constraint violations (SQLSTATE `23505`) become
+  `ConflictError`; every other driver error is a defect (`Effect.die`). Callers
+  never see `EffectDrizzleQueryError` or `isUniqueViolation` directly. Imported
+  via `@repo/database/write`.
+- **`isUniqueViolation(err)`** — internal helper behind the seam; sniffs Postgres
+  SQLSTATE `23505` through the `cause` / `failure` / `error` chain. Works whether
+  the error comes from raw pg, `@effect/sql` `SqlError`, or Drizzle/effect-postgres.
+  Returns `{ constraint } | null`. Prefer `writeOrConflict` in routes — reach for
+  this only when building another seam.
 - **`runMigrations`** — programmatic migrator. Apps call it during boot (or in test
   setup) so migrations aren't a separate deploy step.
 
@@ -41,9 +48,11 @@ code, not from a separate CLI step. Tests use Testcontainers for real Postgres.
 - **Migrations are generated, not handwritten.** Drizzle Kit produces them from the
   schema files; humans review and commit. `drizzle.config.ts` reads from `DB_*` env
   vars and will throw with a clear message if any are unset.
-- **Unique-constraint errors are domain errors.** Catch the driver error in the
-  route, run `isUniqueViolation`, fail with `ConflictError` from `@repo/server`.
-  Don't let raw driver errors reach `mapErrorToHttp`.
+- **Unique-constraint errors are domain errors — use the write seam.** Wrap every
+  write Effect in `writeOrConflict` from `@repo/database/write` instead of
+  hand-catching `EffectDrizzleQueryError`. The seam owns the translation
+  (`23505` → `ConflictError`, everything else → defect), so routes stay
+  intent-only and no driver error reaches `mapErrorToHttp`.
 
 ## Key invariants
 

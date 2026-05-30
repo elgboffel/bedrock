@@ -78,9 +78,11 @@ const AppLive = Layer.mergeAll(
 - **Wrap each handler in `Effect.withSpan("METHOD /path")`** for tracing.
 - **Use tagged errors.** `Effect.fail(new NotFound({ resource: "..." }))`,
   never `reply.code(404).send(...)`. The adapter knows what to do.
-- **Sniff DB driver errors at the source.** Catch `EffectDrizzleQueryError`, run
-  `isUniqueViolation`, fail with `ConflictError`. Don't let raw driver errors
-  reach the mapper.
+- **Use the write seam for DB writes.** Wrap inserts / updates / `.returning()`
+  in `writeOrConflict` from `@repo/database/write` (`{ resource: "Item" }`). It
+  returns the rows or a `ConflictError` and dies on any other driver error — the
+  route never touches `EffectDrizzleQueryError` or `isUniqueViolation`, and no raw
+  driver error reaches the mapper.
 
 ## Testing
 

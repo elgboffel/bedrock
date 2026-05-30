@@ -1,8 +1,8 @@
 import { CreateItem, ItemIdParams } from "@repo/contracts/items";
 import { DB } from "@repo/database/client";
-import { isUniqueViolation } from "@repo/database/errors";
 import { items } from "@repo/database/schema";
-import { ConflictError, NotFound } from "@repo/server/errors";
+import { writeOrConflict } from "@repo/database/write";
+import { NotFound } from "@repo/server/errors";
 import { FastifyServer } from "@repo/server/fastify";
 import { RouteRunner } from "@repo/server/route-runner";
 import { eq } from "drizzle-orm";
@@ -41,25 +41,12 @@ export const registerItemRoutes = Effect.gen(function* () {
     "/items",
     routeWithSchema({ body: CreateItem }, (_request, { body }) =>
       Effect.gen(function* () {
-        const [created] = yield* db
-          .insert(items)
-          .values({ name: body.name })
-          .returning();
+        const [created] = yield* writeOrConflict(
+          db.insert(items).values({ name: body.name }).returning(),
+          { resource: "Item" },
+        );
         return created;
-      }).pipe(
-        Effect.catchTag("EffectDrizzleQueryError", (e) => {
-          const hit = isUniqueViolation(e);
-          return hit
-            ? Effect.fail(
-                new ConflictError({
-                  resource: "Item",
-                  detail: `constraint:${hit.constraint}`,
-                }),
-              )
-            : Effect.die(e);
-        }),
-        Effect.withSpan("POST /items"),
-      ),
+      }).pipe(Effect.withSpan("POST /items")),
     ),
   );
 });

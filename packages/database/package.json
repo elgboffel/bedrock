@@ -21,6 +21,7 @@
   "dependencies": {
     "@effect/sql": "^0.51.1",
     "@effect/sql-pg": "^0.52.1",
+    "@repo/server": "workspace:*",
     "drizzle-orm": "1.0.0-beta.22",
     "effect": "^3.21.2",
     "pg": "^8.21.0"
