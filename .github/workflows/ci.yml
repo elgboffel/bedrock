@@ -4,8 +4,8 @@ on:
   pull_request:
   push:
     branches: [main, dev]
-  # Nightly backstop teardown of the dev stage (see nightly-teardown-dev), so a
-  # dev environment can never leak even if a timed teardown was cancelled.
+  # Nightly teardown of the dev stage (see nightly-teardown-dev), so a
+  # dev environment can never leak overnight.
   schedule:
     - cron: "0 2 * * *" # 02:00 UTC
   # Manual "Run workflow" button — handy to force-remove the dev stage on demand.
@@ -121,46 +121,13 @@ jobs:
         continue-on-error: true
       - run: pnpm sst deploy --stage dev
 
-  # --- Timed teardown: keep the dev stage up for a window, then remove ------
-  # Window is a plain `sleep` — the runner stays alive for it. Start at 1h to
-  # verify the loop works; tune freely. AWS creds are fetched AFTER the sleep so
-  # the OIDC token can't expire mid-wait.
-  teardown-dev:
-    name: teardown dev (timed)
-    needs: deploy-dev
-    # Safe to cancel: a superseded teardown is almost always mid-`sleep`, and
-    # the nightly backstop + next deploy reconcile any rare mid-remove case.
-    concurrency:
-      group: ${{ github.workflow }}-teardown-dev
-      cancel-in-progress: true
-    runs-on: ubuntu-latest
-    permissions:
-      id-token: write
-      contents: read
-    steps:
-      - uses: actions/checkout@v5
-      - uses: pnpm/action-setup@v4
-      - uses: actions/setup-node@v5
-        with:
-          node-version: 24.16.0
-          cache: pnpm
-      - run: pnpm install --frozen-lockfile
-      - name: Keep dev up for the window
-        run: sleep 3600 # 1h — change to taste
-      - uses: aws-actions/configure-aws-credentials@v5
-        with:
-          role-to-assume: ${{ vars.AWS_DEPLOY_ROLE_ARN }}
-          aws-region: ${{ vars.AWS_REGION }}
-      - run: pnpm sst remove --stage dev
-
-  # --- Nightly backstop: guarantee dev is gone overnight --------------------
-  # Runs on the cron schedule and on the manual button. Removes dev even if a
-  # timed teardown above was cancelled (e.g. by a re-push) and left it running.
+  # --- Nightly + manual teardown: guarantee dev is cleaned up ---------------
+  # Runs on the cron schedule (02:00 UTC) and on the manual "Run workflow"
+  # button. Dev stays up until then — no wasted runner minutes on sleep timers.
   nightly-teardown-dev:
     name: nightly dev teardown (backstop)
     if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
-    # Share the teardown group so a nightly sweep and a timed teardown can't
-    # run `sst remove` simultaneously; let the backstop finish (don't cancel).
+    # Serialize teardowns so concurrent manual + nightly can't collide.
     concurrency:
       group: ${{ github.workflow }}-teardown-dev
       cancel-in-progress: false

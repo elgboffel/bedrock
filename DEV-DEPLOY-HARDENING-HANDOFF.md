@@ -54,7 +54,7 @@ no orphans, no stale lock. Trade-off: rapid dev pushes serialize (acceptable).
 2. **Defensive `pnpm sst unlock --stage dev`** before `deploy-dev` (commit
    `a0bad2a`, `continue-on-error`) — clears a stale lock from any *other* hard
    failure. dev only; never prod.
-3. **Timed (1h) + nightly (02:00 UTC) + manual teardown** — dev can't linger.
+3. **Nightly (02:00 UTC) + manual teardown** — dev can't linger overnight.
 4. **Required reviewer on `production` environment** (GitHub setting, reviewer =
    `elgboffel`) — an accidental push to `main` pauses for approval, never
    auto-deploys.
