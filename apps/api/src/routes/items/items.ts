@@ -2,6 +2,7 @@ import { CreateItem, ItemIdParams } from "@repo/contracts/items";
 import { DB } from "@repo/database/client";
 import { items } from "@repo/database/schema";
 import { writeOrConflict } from "@repo/database/write";
+import { created } from "@repo/server/effect-route";
 import { NotFound } from "@repo/server/errors";
 import { FastifyServer } from "@repo/server/fastify";
 import { RouteRunner } from "@repo/server/route-runner";
@@ -41,11 +42,11 @@ export const registerItemRoutes = Effect.gen(function* () {
     "/items",
     routeWithSchema({ body: CreateItem }, (_request, { body }) =>
       Effect.gen(function* () {
-        const [created] = yield* writeOrConflict(
+        const [item] = yield* writeOrConflict(
           db.insert(items).values({ name: body.name }).returning(),
           { resource: "Item" },
         );
-        return created;
+        return created(item);
       }).pipe(Effect.withSpan("POST /items")),
     ),
   );

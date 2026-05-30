@@ -1,7 +1,37 @@
 import { Effect, Runtime, Schema } from "effect";
 import type { FastifyReply, FastifyRequest } from "fastify";
-import { mapErrorToHttp } from "../error-mapper/error-mapper";
+import { fallbackResponse, mapErrorToHttp } from "../error-mapper/error-mapper";
 import { parseErrorToValidation } from "../parse-error-to-validation/parse-error-to-validation";
+
+// --- Success status control ---
+
+const StatusTag = Symbol.for("@repo/server/effect-route/withStatus");
+
+/** A route body value paired with an explicit success status (default is 200). */
+interface WithStatus<T> {
+  readonly [StatusTag]: number;
+  readonly value: T;
+}
+
+function isWithStatus<T>(value: unknown): value is WithStatus<T> {
+  return typeof value === "object" && value !== null && StatusTag in value;
+}
+
+/** Wrap a route-body result with an explicit 2xx success status. */
+export function withStatus<T>(status: number, value: T): WithStatus<T> {
+  return { [StatusTag]: status, value };
+}
+
+/** Convenience for `withStatus(201, value)` — the canonical create response. */
+export function created<T>(value: T): WithStatus<T> {
+  return withStatus(201, value);
+}
+
+function resolveSuccess(result: unknown): { status: number; body: unknown } {
+  return isWithStatus(result)
+    ? { status: result[StatusTag], body: result.value }
+    : { status: 200, body: result };
+}
 
 // --- Effect-aware runner ---
 
@@ -11,7 +41,12 @@ function handleEffect<T>(
 ): Effect.Effect<void> {
   return effect.pipe(
     Effect.withSpan("effect.handleRequest"),
-    Effect.andThen((value) => Effect.sync(() => reply.status(200).send(value))),
+    Effect.andThen((result) =>
+      Effect.sync(() => {
+        const { status, body } = resolveSuccess(result);
+        reply.status(status).send(body);
+      }),
+    ),
     Effect.catchAll((error) => {
       const httpError = mapErrorToHttp(error);
       return Effect.logWarning(`Typed route error: ${error._tag}`).pipe(
@@ -26,10 +61,7 @@ function handleEffect<T>(
       Effect.logError(`Route defect: ${defect}`).pipe(
         Effect.andThen(
           Effect.sync(() =>
-            reply.status(500).send({
-              error: "InternalError",
-              message: "An unexpected error occurred",
-            }),
+            reply.status(fallbackResponse.status).send(fallbackResponse.body),
           ),
         ),
       ),

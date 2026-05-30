@@ -32,6 +32,13 @@ backs this up in `turbo check`. See `.scratch/folder-per-module-layout/PRD.md` a
 - **`route` / `routeWithSchema`** — adapters that turn an Effect-returning function
   into a Fastify handler. `routeWithSchema` decodes `params` / `query` / `body` via
   Effect Schemas before invoking the body; decode failures become `ValidationError`.
+- **Success status** — a route body returning a plain value gets `200`. To return a
+  different 2xx, wrap the value with `withStatus(status, value)` (or the `created(value)`
+  shorthand for `201`) from `effect-route`. The status lives in the route body, not the
+  adapter — e.g. `POST /items` returns `created(item)` → `201`. Default stays `200`.
+- **Single 500 source** — the adapter's defect catch sends `error-mapper`'s exported
+  `fallbackResponse`, the same `{ error: "InternalError", ... }` shape unmapped tags
+  collapse to. The generic-500 wire format lives only in `error-mapper`.
 - **Tagged domain errors** — `NotFound`, `Unauthorized`, `ValidationError`,
   `ConflictError`, `InternalError` (all `Data.TaggedError`). Route bodies `Effect.fail`
   these; the adapter catches them.

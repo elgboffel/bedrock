@@ -1,6 +1,7 @@
 import { it } from "@effect/vitest";
 import { ConfigProvider, Effect, Logger } from "effect";
 import { describe, expect } from "vitest";
+import { created, withStatus } from "../effect-route/effect-route";
 import { NotFound, Unauthorized } from "../errors/errors";
 import { FastifyLive, FastifyServer } from "../fastify/fastify";
 import { RouteRunner, RouteRunnerLive } from "./route-runner";
@@ -33,6 +34,39 @@ describe("RouteRunner", () => {
 
       expect(response.statusCode).toBe(200);
       expect(response.json()).toEqual({ hello: "world" });
+    }).pipe(
+      Effect.provide(RouteRunnerLive),
+      Effect.provide(FastifyLive),
+      Effect.withConfigProvider(testConfigProvider),
+      Effect.scoped,
+    ),
+  );
+
+  it.effect("route body can express a non-200 success status", () =>
+    Effect.gen(function* () {
+      const app = yield* FastifyServer;
+      const { route } = yield* RouteRunner;
+
+      app.post(
+        "/created",
+        route(() => Effect.succeed(created({ id: 1 }))),
+      );
+      app.get(
+        "/accepted",
+        route(() => Effect.succeed(withStatus(202, { queued: true }))),
+      );
+
+      const createdRes = yield* Effect.promise(() =>
+        app.inject({ method: "POST", url: "/created" }),
+      );
+      expect(createdRes.statusCode).toBe(201);
+      expect(createdRes.json()).toEqual({ id: 1 });
+
+      const acceptedRes = yield* Effect.promise(() =>
+        app.inject({ method: "GET", url: "/accepted" }),
+      );
+      expect(acceptedRes.statusCode).toBe(202);
+      expect(acceptedRes.json()).toEqual({ queued: true });
     }).pipe(
       Effect.provide(RouteRunnerLive),
       Effect.provide(FastifyLive),

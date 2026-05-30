@@ -155,7 +155,7 @@ describe("Item routes", () => {
         }),
       );
 
-      expect(response.statusCode).toBe(200);
+      expect(response.statusCode).toBe(201);
       expect(response.json()).toMatchObject({ name: "New Widget" });
       expect(response.json()).toHaveProperty("id");
     }).pipe(
@@ -238,7 +238,7 @@ describe("Item routes", () => {
           headers: withInternalAuth(TEST_TOKEN),
         }),
       );
-      expect(first.statusCode).toBe(200);
+      expect(first.statusCode).toBe(201);
 
       const second = yield* Effect.promise(() =>
         app.inject({
